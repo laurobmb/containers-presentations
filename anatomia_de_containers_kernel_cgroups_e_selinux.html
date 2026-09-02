@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kernel Internals: Namespaces, cgroups v2 e SELinux no Podman</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rh: {
+                            red: '#EE0000',
+                            darkred: '#A30000',
+                            black: '#151515',
+                            dark: '#0f0f0f',
+                            card: '#1f1f1f',
+                            border: '#333333',
+                            gray: '#d2d2d2',
+                            lightgray: '#f0f0f0',
+                            code: '#0a0a0a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Red Hat Text', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        heading: ['Red Hat Display', 'Inter', 'sans-serif'],
+                        mono: ['Red Hat Mono', 'Fira Code', 'Courier New', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Red Hat Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;600;700;900&family=Red+Hat+Mono:wght@400;600&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Red Hat Text', sans-serif;
+            background-color: #0f0f0f;
+            color: #f0f0f0;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Red Hat Display', sans-serif;
+        }
+        pre, code {
+            font-family: 'Red Hat Mono', monospace;
+        }
+        .slide {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+        .glow-red {
+            box-shadow: 0 0 25px rgba(238, 0, 0, 0.25);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between select-none bg-rh-dark">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+        <div class="flex items-center space-x-3">
+            <!-- Red Hat Fedora/RHEL Inspired Logo Emblem -->
+            <div class="w-8 h-8 bg-rh-red rounded flex items-center justify-center font-heading font-black text-white text-lg tracking-tighter shadow-md">
+                RH
+            </div>
+            <div>
+                <span class="text-xs uppercase tracking-widest text-rh-red font-bold block">Módulo 2 de 3 • Deep Dive Técnico</span>
+                <h1 class="text-sm font-heading font-bold text-white tracking-wide">Linux Kernel, cgroups v2, SELinux & Podman</h1>
+            </div>
+        </div>
+
+        <!-- Center Slide Counter -->
+        <div class="flex items-center space-x-2 bg-rh-card border border-rh-border px-3 py-1 rounded-full text-xs font-mono">
+            <span class="text-gray-400">SLIDE</span>
+            <span id="slide-number" class="text-rh-red font-bold text-sm">01</span>
+            <span class="text-gray-500">/</span>
+            <span id="total-slides" class="text-gray-400">10</span>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleModal('kernel-map-modal')" class="text-xs bg-rh-card hover:bg-rh-border text-gray-200 border border-rh-border px-3 py-1.5 rounded transition flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5 text-rh-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                <span>Mapa do Kernel</span>
+            </button>
+            <button onclick="toggleFullScreen()" class="p-2 text-gray-400 hover:text-white rounded hover:bg-rh-card transition" title="Tela Cheia">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Presentation Viewport -->
+    <main class="flex-1 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
+
+        <!-- ==================== SLIDE 1: Capa ==================== -->
+        <section class="slide active w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-6">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 bg-rh-red/10 border border-rh-red/30 rounded text-rh-red text-xs font-mono font-semibold tracking-wider uppercase">
+                <span class="w-2 h-2 rounded-full bg-rh-red animate-ping"></span>
+                <span>Módulo 2 de 3 • Engenharia de Sistemas Linux</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black text-white leading-tight">
+                Containers <span class="text-rh-red">Não Existem.</span><br>
+                <span class="text-gray-300 font-light text-2xl md:text-4xl">A Anatomia do Isolamento no Linux Kernel</span>
+            </h1>
+            <p class="max-w-3xl text-gray-400 text-base md:text-lg leading-relaxed">
+                Um "container" é apenas um processo Linux padrão executando em ring-3 restrito por quatro pilares primordiais do Kernel: 
+                <span class="text-white font-semibold">Namespaces</span> (Visibilidade), 
+                <span class="text-white font-semibold">cgroups v2</span> (Recursos), 
+                <span class="text-white font-semibold">SELinux/MCS</span> (Controle de Acesso Mandatório) e 
+                <span class="text-white font-semibold">Seccomp</span> (Filtragem de Syscalls).
+            </p>
+            <p class="text-xs text-gray-500 font-mono uppercase tracking-wider">↳ Continuação do Módulo 1: agora vamos abrir o capô do Podman e entender o que o Kernel faz por trás de cada <code class="text-rh-red">podman run</code>.</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full pt-4">
+                <div class="bg-rh-card border-l-4 border-rh-red p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Pilar 1</span>
+                    <h3 class="font-bold text-white text-base">Namespaces</h3>
+                    <p class="text-xs text-gray-400 mt-1">O que o processo pode <strong>enxergar</strong>.</p>
+                </div>
+                <div class="bg-rh-card border-l-4 border-blue-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Pilar 2</span>
+                    <h3 class="font-bold text-white text-base">cgroups v2</h3>
+                    <p class="text-xs text-gray-400 mt-1">O que o processo pode <strong>consumir</strong>.</p>
+                </div>
+                <div class="bg-rh-card border-l-4 border-green-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Pilar 3</span>
+                    <h3 class="font-bold text-white text-base">SELinux (MAC)</h3>
+                    <p class="text-xs text-gray-400 mt-1">O que o processo pode <strong>acessar</strong>.</p>
+                </div>
+                <div class="bg-rh-card border-l-4 border-amber-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Pilar 4</span>
+                    <h3 class="font-bold text-white text-base">Seccomp / Caps</h3>
+                    <p class="text-xs text-gray-400 mt-1">O que o processo pode <strong>executar</strong>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 2: Namespaces ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-5">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Pilar 1 • Isolamento de Visão</div>
+                <h2 class="text-3xl font-black text-white">Linux Namespaces: A Ilusão de uma Máquina Exclusiva</h2>
+                <p class="text-gray-400 text-sm mt-1">Criados via syscall <code class="text-rh-red">clone()</code> ou <code class="text-rh-red">unshare()</code>, particionam os recursos globais do sistema operacional.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-sm flex items-center justify-between border-b border-rh-border pb-2">
+                        <span>Os 8 Namespaces do Kernel Linux</span>
+                        <span class="text-xs font-mono text-rh-red bg-rh-red/10 px-2 py-0.5 rounded">/proc/[PID]/ns/</span>
+                    </h3>
+                    <ul class="text-xs space-y-2 text-gray-300 font-mono">
+                        <li class="flex items-start justify-between bg-rh-black/50 p-1.5 rounded">
+                            <span class="text-white font-bold">mnt (Mount)</span>
+                            <span class="text-gray-400 font-sans">Sistemas de arquivos e pontos de montagem isolados.</span>
+                        </li>
+                        <li class="flex items-start justify-between bg-rh-black/50 p-1.5 rounded">
+                            <span class="text-white font-bold">pid (Process ID)</span>
+                            <span class="text-gray-400 font-sans">Processo do container enxerga-se como PID 1.</span>
+                        </li>
+                        <li class="flex items-start justify-between bg-rh-black/50 p-1.5 rounded">
+                            <span class="text-white font-bold">net (Network)</span>
+                            <span class="text-gray-400 font-sans">Tabela de rotas, veth pairs, iptables/nftables próprios.</span>
+                        </li>
+                        <li class="flex items-start justify-between bg-rh-black/50 p-1.5 rounded">
+                            <span class="text-white font-bold">user (User/Group)</span>
+                            <span class="text-gray-400 font-sans">Mapeia UID 0 interno para UID 1000+ no host (Rootless).</span>
+                        </li>
+                        <li class="flex items-start justify-between bg-rh-black/50 p-1.5 rounded">
+                            <span class="text-white font-bold">ipc, uts, cgroup, time</span>
+                            <span class="text-gray-400 font-sans">Memória compartilhada, Hostname, relógio e cgroups isolados.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Live Shell Inspector Simulation -->
+                <div class="bg-rh-code border border-rh-border rounded-lg p-4 font-mono text-xs flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between pb-2 border-b border-rh-border text-gray-400 mb-3">
+                            <span class="text-green-400">terminal@rhel-host: ~</span>
+                            <span>bash</span>
+                        </div>
+                        <p class="text-gray-400"># Inspecionando os namespaces de um container rodando no Podman:</p>
+                        <p class="text-yellow-400 mt-1">$ podman run -d --name web docker.io/library/nginx</p>
+                        <p class="text-gray-500">c982d61a5e4b...</p>
+                        
+                        <p class="text-yellow-400 mt-2">$ sudo lsns -p $(podman inspect -f '{{.State.Pid}}' web)</p>
+                        <div class="text-gray-300 text-[11px] mt-1 bg-black p-2 rounded border border-rh-border/50">
+<span class="text-rh-red font-bold">NS TYPE   NPROCS   PID USER   COMMAND</span>
+net        1   12458 root   nginx: master process
+mnt        1   12458 root   nginx: master process
+pid        1   12458 root   nginx: master process
+user       1   12458 root   nginx: master process
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-rh-border/60 text-gray-400 italic text-[11px]">
+                        💡 O host enxerga o PID real (12458); o container enxerga apenas o PID 1.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 3: cgroups v2 ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Pilar 2 • Gestão e Limitação de Recursos</div>
+                <h2 class="text-3xl font-black text-white">cgroups v2: O Guardião Contra Starvation e OOM</h2>
+                <p class="text-gray-400 text-sm mt-1">Enquanto Namespaces isolam a <em>visão</em>, os Control Groups regulam e contam o consumo de hardware via pseudo-filesystem <code class="text-blue-400">/sys/fs/cgroup/</code>.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- Memory Controller -->
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg space-y-2">
+                    <div class="flex items-center justify-between text-blue-400 font-bold text-sm">
+                        <span>1. Memória (OOM Control)</span>
+                        <span class="text-xs font-mono bg-blue-950 px-1.5 py-0.5 rounded border border-blue-800">memory.max</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Define limites rígidos (*hard limit*). Ao ultrapassar <code class="text-blue-300">memory.max</code>, o kernel aciona o <strong>Out-Of-Memory Killer (OOM)</strong> eliminando o processo filho ou o container antes de comprometer o host.
+                    </p>
+                    <div class="bg-rh-black p-2 rounded text-[11px] font-mono text-gray-400 border border-rh-border">
+                        podman run -m 512m ...<br>
+                        ↳ <span class="text-green-400">echo 536870912 > memory.max</span>
+                    </div>
+                </div>
+
+                <!-- CPU Controller -->
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg space-y-2">
+                    <div class="flex items-center justify-between text-yellow-400 font-bold text-sm">
+                        <span>2. CPU (CFS Quotas)</span>
+                        <span class="text-xs font-mono bg-yellow-950 px-1.5 py-0.5 rounded border border-yellow-800">cpu.max</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Utiliza o <em>Completely Fair Scheduler (CFS)</em>. Define quanto tempo em microssegundos de CPU o container pode utilizar dentro de uma janela de período (ex: 50000 100000 = 0.5 CPU).
+                    </p>
+                    <div class="bg-rh-black p-2 rounded text-[11px] font-mono text-gray-400 border border-rh-border">
+                        podman run --cpus 1.5 ...<br>
+                        ↳ <span class="text-green-400">echo "150000 100000" > cpu.max</span>
+                    </div>
+                </div>
+
+                <!-- PIDs & IO Controller -->
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg space-y-2">
+                    <div class="flex items-center justify-between text-purple-400 font-bold text-sm">
+                        <span>3. PIDs & I/O Throttling</span>
+                        <span class="text-xs font-mono bg-purple-950 px-1.5 py-0.5 rounded border border-purple-800">pids.max</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Impede <strong>Fork Bombs</strong> catastróficos restringindo a quantidade máxima de threads/processos criados, além de limitar taxas de leitura/escrita por disco em <code class="text-purple-300">io.max</code>.
+                    </p>
+                    <div class="bg-rh-black p-2 rounded text-[11px] font-mono text-gray-400 border border-rh-border">
+                        podman run --pids-limit 100 ...<br>
+                        ↳ <span class="text-green-400">echo 100 > pids.max</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- v1 vs v2 Comparison Banner -->
+            <div class="bg-gradient-to-r from-blue-950/40 via-rh-card to-rh-card border border-blue-900/60 p-3 rounded-lg flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-3">
+                    <span class="px-2 py-1 bg-blue-600 text-white font-bold rounded text-[10px] uppercase">cgroups v2 no RHEL/Fedora</span>
+                    <span class="text-gray-300">Hierarquia unificada de processos, permitindo delegação sem privilégios para <strong>Rootless Containers</strong> com <code class="text-blue-300 font-mono">systemd --user</code>.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 4: SELinux Overview ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">Pilar 3 • Mandatory Access Control (MAC)</div>
+                <h2 class="text-3xl font-black text-white">SELinux: A Fortaleza Contra Container Breakout</h2>
+                <p class="text-gray-400 text-sm mt-1">Por que permissões UNIX (DAC / `chmod 777` / root) são insuficientes e como o SELinux confina o processo no Kernel.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-base flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                        <span>O Cenário de Risco (Sem SELinux / DAC puro)</span>
+                    </h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Se um invasor explorar uma vulnerabilidade no container (ou no runtime) e conseguir escapar do Namespace ou montar o <code class="text-red-400">/etc</code> do host, sendo <strong>UID 0 (root)</strong>, ele terá acesso irrestrito de leitura e escrita ao kernel e a todos os arquivos do servidor.
+                    </p>
+                    <div class="border border-red-900/50 bg-red-950/20 p-2.5 rounded text-xs text-red-300">
+                        ⚠️ <strong>Discretionary Access Control (DAC):</strong> O dono do arquivo ou o Root decide quem acessa. Se o processo for root, o sistema cede.
+                    </div>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-base flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                        <span>A Proteção com SELinux (MAC)</span>
+                    </h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        O Kernel consulta a política de segurança do SELinux <em>após</em> o DAC. O processo do container roda sob o tipo restrito <code class="text-green-400 font-mono">container_t</code>. Ele só pode interagir com objetos explicitamente rotulados com tipos compatíveis (ex: <code class="text-green-400 font-mono">container_file_t</code>).
+                    </p>
+                    <div class="border border-green-950 bg-green-950/30 p-2.5 rounded text-xs text-green-300">
+                        🛡️ <strong>Mandatory Access Control:</strong> Mesmo que o container seja root, ele recebe <em>Permission Denied</em> se tentar tocar em arquivos rotulados como <code class="text-yellow-300 font-mono">shadow_t</code> ou <code class="text-yellow-300 font-mono">ssh_home_t</code>.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Flow Diagram -->
+            <div class="bg-rh-black border border-rh-border p-3 rounded-lg flex items-center justify-around text-xs font-mono text-center">
+                <div class="p-2 bg-rh-card rounded border border-rh-border">
+                    <span class="text-gray-400 block text-[10px]">Processo do Container</span>
+                    <strong class="text-rh-red">container_t (UID 0)</strong>
+                </div>
+                <span class="text-gray-500 font-bold">➔ Solicita Syscall ➔</span>
+                <div class="p-2 bg-rh-card rounded border border-rh-border">
+                    <span class="text-gray-400 block text-[10px]">Kernel LSM Hook</span>
+                    <strong class="text-green-400">SELinux Policy Engine</strong>
+                </div>
+                <span class="text-gray-500 font-bold">➔ Avalia Alvo ➔</span>
+                <div class="p-2 bg-red-950/40 rounded border border-red-800/60">
+                    <span class="text-gray-400 block text-[10px]">Arquivo do Host /etc/shadow</span>
+                    <strong class="text-red-400">shadow_t [AVISO: AVC DENIED]</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 5: SELinux MCS & Volumes (:z vs :Z) ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">SELinux Avançado • Multi-Category Security</div>
+                <h2 class="text-3xl font-black text-white">MCS e o Segredo das Flags de Volume <code class="text-rh-red">:z</code> e <code class="text-rh-red">:Z</code></h2>
+                <p class="text-gray-400 text-sm mt-1">Como o Podman impede que o <em>Container A</em> leia os dados do <em>Container B</em> mesmo ambos sendo do tipo <code class="text-green-400">container_t</code>.</p>
+            </div>
+
+            <!-- Label Structure Breakdown -->
+            <div class="bg-rh-code border border-rh-border p-3.5 rounded-lg">
+                <span class="text-xs text-gray-400 uppercase font-mono block mb-1">Anatomia de um Contexto SELinux Completo</span>
+                <div class="text-sm font-mono flex flex-wrap gap-2 text-white bg-black p-2.5 rounded border border-rh-border">
+                    <span class="text-purple-400" title="User">system_u</span> : 
+                    <span class="text-blue-400" title="Role">system_r</span> : 
+                    <span class="text-green-400 font-bold" title="Type">container_t</span> : 
+                    <span class="text-yellow-400 font-bold" title="Sensitivity & Categories">s0:c142,c859</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">
+                    O Podman gera aleatoriamente um par de categorias MCS (<code class="text-yellow-400 font-mono">c142,c859</code>) para cada container. Containers com categorias diferentes <strong>não podem acessar os arquivos uns dos outros</strong>.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- :z flag -->
+                <div class="bg-rh-card border-l-4 border-yellow-500 p-4 rounded-r border-t border-b border-r border-rh-border space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-white text-sm">Flag <code class="text-yellow-400 bg-yellow-950 px-2 py-0.5 rounded">:z</code> (Compartilhado / Shared)</h4>
+                        <span class="text-[10px] font-mono text-yellow-300">container_file_t (Sem MCS)</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Instrui o Podman a reetiquetar o diretório do host para que <strong>múltiplos containers</strong> possam ler e escrever simultaneamente no mesmo volume montado.
+                    </p>
+                    <div class="bg-black p-2 rounded text-[11px] font-mono text-gray-400">
+                        podman run -v /app/data:/data<strong class="text-yellow-400">:z</strong> docker.io/library/nginx
+                    </div>
+                </div>
+
+                <!-- :Z flag -->
+                <div class="bg-rh-card border-l-4 border-rh-red p-4 rounded-r border-t border-b border-r border-rh-border space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-white text-sm">Flag <code class="text-rh-red bg-red-950 px-2 py-0.5 rounded">:Z</code> (Privado / Exclusive)</h4>
+                        <span class="text-[10px] font-mono text-red-300">container_file_t:s0:c1,c2</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Reetiqueta o diretório com a categoria MCS <strong>exata e exclusiva</strong> do container atual. Nenhum outro container no host terá permissão de ler este volume.
+                    </p>
+                    <div class="bg-black p-2 rounded text-[11px] font-mono text-gray-400">
+                        podman run -v /db/secret:/data<strong class="text-rh-red">:Z</strong> docker.io/library/postgres
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 6: Seccomp & Linux Capabilities ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider">Pilar 4 • Bloqueio de Syscalls e Privilégios</div>
+                <h2 class="text-3xl font-black text-white">Seccomp Filters & Linux Capabilities</h2>
+                <p class="text-gray-400 text-sm mt-1">Como reduzir a superfície de ataque do Kernel através do descarte cirúrgico de chamadas de sistema.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Seccomp -->
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-white text-base">Seccomp (Secure Computing)</h3>
+                        <span class="text-xs font-mono text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800">BPF Filters</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        O Linux possui mais de 450 chamadas de sistema (syscalls). Um perfil Seccomp padrão no Podman bloqueia dezenas de syscalls perigosas que um container comum nunca deveria usar:
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                        <div class="bg-black p-2 rounded border border-rh-border text-red-400">❌ reboot()</div>
+                        <div class="bg-black p-2 rounded border border-rh-border text-red-400">❌ kexec_load()</div>
+                        <div class="bg-black p-2 rounded border border-rh-border text-red-400">❌ init_module()</div>
+                        <div class="bg-black p-2 rounded border border-rh-border text-red-400">❌ swapon()</div>
+                    </div>
+                </div>
+
+                <!-- Linux Capabilities -->
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-white text-base">Linux Capabilities (posix)</h3>
+                        <span class="text-xs font-mono text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded border border-blue-800">Granular Root</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        O poder do root tradicional é fatiado em ~40 permissões. O Podman retira a grande maioria por padrão (como <code class="text-yellow-300 font-mono">CAP_SYS_ADMIN</code>, <code class="text-yellow-300 font-mono">CAP_SYS_RAWIO</code>):
+                    </p>
+                    <div class="bg-black p-2.5 rounded font-mono text-[11px] text-gray-300 border border-rh-border">
+                        <span class="text-gray-500"># Descartando todas e concedendo apenas bind de portas:</span><br>
+                        podman run --cap-drop=ALL --cap-add=NET_BIND_SERVICE ...
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-amber-950/30 border border-amber-800/60 p-3 rounded-lg text-xs text-amber-200">
+                ⚡ <strong>Regra de Ouro da Segurança Enterprise:</strong> Nunca utilize <code class="font-mono font-bold text-white bg-black px-1.5 py-0.5 rounded">--privileged</code> em produção. A flag desativa o SELinux, o Seccomp, restaura todos os Caps e expõe os devices do host.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 7: A Mágica do Podman Rootless ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Arquitetura Podman • Sem Daemon & Sem Root</div>
+                <h2 class="text-3xl font-black text-white">Podman Rootless: User Namespaces na Prática</h2>
+                <p class="text-gray-400 text-sm mt-1">Como você se torna o "Superusuário" dentro do container sem ter nenhum privilégio real no sistema operacional hospedeiro.</p>
+            </div>
+
+            <!-- Mapping Diagram -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-code border border-rh-border p-4 rounded-lg space-y-2 font-mono text-xs">
+                    <span class="text-rh-red font-bold text-xs uppercase block">Mapeamento de UIDs (/etc/subuid)</span>
+                    <p class="text-gray-400 text-[11px]">Quando o usuário <code class="text-white">lucas (UID 1000)</code> executa o Podman:</p>
+                    <div class="bg-black p-2 rounded border border-rh-border text-yellow-300 text-[11px]">
+                        $ cat /etc/subuid<br>
+                        lucas:100000:65536
+                    </div>
+                    <div class="space-y-1.5 pt-2 text-[11px]">
+                        <div class="flex justify-between bg-rh-card p-1.5 rounded border border-rh-border">
+                            <span class="text-green-400">UID 0 no Container</span>
+                            <span class="text-gray-400">➔ UID 1000 no Host (lucas)</span>
+                        </div>
+                        <div class="flex justify-between bg-rh-card p-1.5 rounded border border-rh-border">
+                            <span class="text-green-400">UID 1 no Container</span>
+                            <span class="text-gray-400">➔ UID 100000 no Host</span>
+                        </div>
+                        <div class="flex justify-between bg-rh-card p-1.5 rounded border border-rh-border">
+                            <span class="text-green-400">UID 65535 no Container</span>
+                            <span class="text-gray-400">➔ UID 165534 no Host</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-sm flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-rh-red"></span>
+                        <span>Vantagens do Modelo Fork/Exec do Podman</span>
+                    </h3>
+                    <ul class="text-xs space-y-2 text-gray-300">
+                        <li class="flex items-start space-x-2">
+                            <span class="text-rh-red font-bold">✓</span>
+                            <span><strong>Sem Daemon Central:</strong> Não existe socket root exposto (`/var/run/docker.sock`). Se o Podman fechar, o container continua rodando através do <em>conmon</em>.</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="text-rh-red font-bold">✓</span>
+                            <span><strong>Auditd Transparente:</strong> O sistema de auditoria do Linux registra o UID real (`1000`) nas chamadas de sistema, ao invés de mascarar tudo sob um daemon de root.</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="text-rh-red font-bold">✓</span>
+                            <span><strong>Rede via Pasta / Slirp4netns:</strong> Stack de rede completa em User Space sem necessidade de pontes de rede privilegiadas.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 8: Interactive Kernel Inspector ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">Laboratório Conceitual Interativo</div>
+                <h2 class="text-3xl font-black text-white">Simulador de Chamadas ao Kernel (CLI ➔ Kernel)</h2>
+                <p class="text-gray-400 text-sm mt-1">Selecione um comando Podman para ver o que acontece internamente nas camadas do Kernel Linux.</p>
+            </div>
+
+            <!-- Command Selector Tabs -->
+            <div class="flex flex-wrap gap-2">
+                <button onclick="setScenario('run')" id="tab-run" class="scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-rh-red text-white">1. podman run padrão</button>
+                <button onclick="setScenario('limit')" id="tab-limit" class="scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-rh-card text-gray-400 hover:text-white border border-rh-border">2. Com limites cgroup</button>
+                <button onclick="setScenario('volume')" id="tab-volume" class="scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-rh-card text-gray-400 hover:text-white border border-rh-border">3. Com volume SELinux (:Z)</button>
+            </div>
+
+            <!-- Interactive Diagram Output -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg space-y-2">
+                    <span class="text-gray-400 font-mono text-[10px] uppercase block">Passo 1 • Execução</span>
+                    <h4 class="font-bold text-white text-sm" id="box-cli-title">CLI Podman / crun</h4>
+                    <p class="text-gray-300 text-[11px]" id="box-cli-desc">O Podman invoca o runtime OCI (<code class="text-rh-red">crun</code>).</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg space-y-2">
+                    <span class="text-gray-400 font-mono text-[10px] uppercase block">Passo 2 • Namespaces</span>
+                    <h4 class="font-bold text-white text-sm" id="box-ns-title">clone() com Flags</h4>
+                    <p class="text-gray-300 text-[11px]" id="box-ns-desc">Cria CLONE_NEWPID, CLONE_NEWNS, CLONE_NEWNET, CLONE_NEWUSER.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg space-y-2">
+                    <span class="text-gray-400 font-mono text-[10px] uppercase block">Passo 3 • cgroups v2</span>
+                    <h4 class="font-bold text-white text-sm" id="box-cg-title">cgroupfs Registration</h4>
+                    <p class="text-gray-300 text-[11px]" id="box-cg-desc">Cria o nó em /sys/fs/cgroup/user.slice/... e aloca o PID do processo.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg space-y-2">
+                    <span class="text-gray-400 font-mono text-[10px] uppercase block">Passo 4 • SELinux / Seccomp</span>
+                    <h4 class="font-bold text-white text-sm" id="box-sec-title">LSM Context Transition</h4>
+                    <p class="text-gray-300 text-[11px]" id="box-sec-desc">Aplica container_t com par de categorias MCS único e instala filtros BPF.</p>
+                </div>
+            </div>
+
+            <!-- Code Simulation Box -->
+            <div class="bg-black border border-rh-border p-3.5 rounded-lg font-mono text-xs">
+                <span class="text-gray-500 text-[11px] block mb-1">// Comando executado:</span>
+                <span class="text-yellow-400 text-sm block" id="interactive-cmd">podman run -d --name app registry.access.redhat.com/ubi9/ubi-micro</span>
+                <div class="mt-3 pt-2 border-t border-rh-border/60 text-green-400 text-[11px]" id="interactive-result">
+                    ✓ Processo encapsulado com sucesso nos 4 subsistemas do Kernel.
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 9: Troubleshooting & Diagnóstico ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-yellow-400 font-bold uppercase tracking-wider">Prática de Campo • Comandos Úteis</div>
+                <h2 class="text-3xl font-black text-white">Troubleshooting e Diagnóstico no RHEL</h2>
+                <p class="text-gray-400 text-sm mt-1">Como investigar negações de SELinux e gargalos de cgroups em ambientes corporativos.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- SELinux Diagnostic -->
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2.5">
+                    <h3 class="font-bold text-white text-sm flex items-center justify-between">
+                        <span>1. Investigando SELinux (AVC Denials)</span>
+                        <span class="text-xs font-mono text-rh-red">/var/log/audit/audit.log</span>
+                    </h3>
+                    <div class="bg-black p-2.5 rounded font-mono text-[11px] text-gray-300 space-y-1">
+                        <p class="text-gray-500"># Verificar se o SELinux está bloqueando seu container:</p>
+                        <p class="text-yellow-300">sudo ausearch -m AVC,USER_AVC -ts recent</p>
+                        <p class="text-gray-500 mt-2"># Obter a explicação legível e sugestão de correção:</p>
+                        <p class="text-yellow-300">sudo sealert -a /var/log/audit/audit.log</p>
+                        <p class="text-gray-500 mt-2"># Verificar contextos de arquivos montados:</p>
+                        <p class="text-yellow-300">ls -laZ /meu/diretorio/volume</p>
+                    </div>
+                </div>
+
+                <!-- cgroups Diagnostic -->
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2.5">
+                    <h3 class="font-bold text-white text-sm flex items-center justify-between">
+                        <span>2. Inspecionando cgroups v2 do Container</span>
+                        <span class="text-xs font-mono text-blue-400">/sys/fs/cgroup/</span>
+                    </h3>
+                    <div class="bg-black p-2.5 rounded font-mono text-[11px] text-gray-300 space-y-1">
+                        <p class="text-gray-500"># Ver uso de recursos em tempo real estilo top:</p>
+                        <p class="text-blue-300">podman stats</p>
+                        <p class="text-gray-500 mt-2"># Ver contadores de throttling de CPU no cgroupfs:</p>
+                        <p class="text-blue-300">cat /sys/fs/cgroup/.../cpu.stat</p>
+                        <p class="text-gray-500 mt-2"># Checar se o container sofreu OOM (Out of Memory):</p>
+                        <p class="text-blue-300">cat /sys/fs/cgroup/.../memory.events</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pro-tip Box -->
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs flex items-center space-x-3">
+                <span class="text-lg">💡</span>
+                <span class="text-gray-300">Se o seu container falha com <em>"Permission denied"</em> mesmo usando permissão 777 na pasta do host, em 99% dos casos é o SELinux bloqueando por ausência da flag <code class="text-rh-red font-mono font-bold">:Z</code> ou <code class="text-yellow-400 font-mono font-bold">:z</code>.</span>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 10: Matriz de Conclusão ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-5">
+            <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Síntese de Engenharia</div>
+            <h2 class="text-3xl md:text-5xl font-black text-white">A Matriz Definitiva do Isolamento</h2>
+            <p class="text-gray-400 text-sm max-w-3xl">
+                O ecossistema Red Hat / Podman não reinventa a segurança: ele potencializa as capacidades nativas do Kernel Linux de forma transparente e declarativa.
+            </p>
+
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-left text-xs border border-rh-border bg-rh-card rounded-lg overflow-hidden">
+                    <thead class="bg-rh-black text-white font-heading font-bold uppercase text-[11px] border-b border-rh-border">
+                        <tr>
+                            <th class="p-3">Camada do Kernel</th>
+                            <th class="p-3">Pergunta Fundamental</th>
+                            <th class="p-3">Mecanismo Tecnológico</th>
+                            <th class="p-3">Papel do Podman</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-rh-border text-gray-300 font-mono text-[11px]">
+                        <tr>
+                            <td class="p-3 font-bold text-white">Namespaces</td>
+                            <td class="p-3 font-sans text-gray-200">"O que eu posso ver?"</td>
+                            <td class="p-3 text-rh-red">PID, MNT, NET, USER, IPC, UTS</td>
+                            <td class="p-3 font-sans">Configura via <code>unshare()</code> / <code>clone()</code></td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white">cgroups v2</td>
+                            <td class="p-3 font-sans text-gray-200">"O quanto eu posso gastar?"</td>
+                            <td class="p-3 text-blue-400">CFS, OOM, memory.max, cpu.max</td>
+                            <td class="p-3 font-sans">Integração nativa com <code>systemd</code> slices</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white">SELinux</td>
+                            <td class="p-3 font-sans text-gray-200">"O que eu posso acessar?"</td>
+                            <td class="p-3 text-green-400">Type Enforcement (container_t) + MCS</td>
+                            <td class="p-3 font-sans">Gera categorias e rotula volumes (:z/:Z)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white">Seccomp</td>
+                            <td class="p-3 font-sans text-gray-200">"Quais syscalls posso chamar?"</td>
+                            <td class="p-3 text-amber-400">eBPF Syscall Filter (~400 permitidas)</td>
+                            <td class="p-3 font-sans">Aplica o profile JSON padrão seguro</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                🚀 <strong>Próximo Passo no Aprendizado (Módulo 3):</strong> Esses mesmos pilares do Kernel que o Podman aplica em uma única máquina são os que o Kubernetes e o Red Hat OpenShift replicam em milhares de nós. Vamos ver como!
+            </div>
+
+            <div class="pt-2 flex items-center space-x-3">
+                <button onclick="goToSlide(0)" class="bg-rh-red hover:bg-rh-darkred text-white text-xs font-bold px-4 py-2 rounded transition shadow-lg">
+                    Reiniciar Apresentação ↺
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Presentation Control Bar -->
+    <footer class="h-14 border-t border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+        <div class="flex items-center space-x-2">
+            <button onclick="prevSlide()" class="p-2 rounded bg-rh-card hover:bg-rh-border text-gray-200 transition border border-rh-border" title="Anterior (Seta Esquerda)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="nextSlide()" class="p-2 rounded bg-rh-red hover:bg-rh-darkred text-white transition shadow" title="Próximo (Seta Direita / Espaço)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <span class="text-xs text-gray-500 font-mono hidden md:inline ml-2">Navegue com [←] e [→] ou [Espaço]</span>
+        </div>
+
+        <!-- Mini Slide Progress Indicators -->
+        <div id="dots-container" class="flex space-x-1.5 overflow-x-auto max-w-xs md:max-w-md py-1">
+            <!-- Dynamically injected via JS -->
+        </div>
+
+        <div class="text-[11px] font-mono text-gray-400">
+            Enterprise Container Architecture
+        </div>
+    </footer>
+
+    <!-- Modal: Mapa Arquitetural do Kernel -->
+    <div id="kernel-map-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-rh-black border border-rh-border w-full max-w-3xl rounded-xl p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-rh-border pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 bg-rh-red rounded-full"></span>
+                    <span>Mapa de Camadas: Userspace vs Kernelspace</span>
+                </h3>
+                <button onclick="toggleModal('kernel-map-modal')" class="text-gray-400 hover:text-white text-lg font-mono">✕</button>
+            </div>
+            
+            <div class="space-y-3 text-xs font-mono">
+                <!-- User space -->
+                <div class="p-3 bg-blue-950/20 border border-blue-900/50 rounded">
+                    <span class="text-blue-400 font-bold block mb-1">USER SPACE (Ring 3)</span>
+                    <p class="text-gray-300">Podman CLI ➔ Conmon ➔ crun/runc (OCI Runtime) ➔ Processo do App (Ex: NGINX)</p>
+                </div>
+                <!-- Transition -->
+                <div class="text-center text-gray-500">▼ System Calls (clone, unshare, write, read, socket) ▼</div>
+                <!-- Kernel space -->
+                <div class="p-3 bg-red-950/20 border border-red-900/50 rounded space-y-2">
+                    <span class="text-rh-red font-bold block">LINUX KERNEL SPACE (Ring 0)</span>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-[10px]">
+                        <div class="bg-rh-card p-2 rounded border border-rh-border text-gray-200">Namespaces<br><span class="text-gray-500">Isolação de Contexto</span></div>
+                        <div class="bg-rh-card p-2 rounded border border-rh-border text-gray-200">cgroups v2<br><span class="text-gray-500">Métricas & Limites</span></div>
+                        <div class="bg-rh-card p-2 rounded border border-rh-border text-gray-200">SELinux (LSM)<br><span class="text-gray-500">MAC + MCS Labels</span></div>
+                        <div class="bg-rh-card p-2 rounded border border-rh-border text-gray-200">Seccomp / Caps<br><span class="text-gray-500">Filtro de Syscalls</span></div>
+                    </div>
+                </div>
+                <!-- Hardware -->
+                <div class="p-2.5 bg-rh-card border border-rh-border rounded text-center text-gray-400 text-[11px]">
+                    HARDWARE: CPU, Memória RAM, Discos NVMe/SSD, Placas de Rede (NIC)
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="toggleModal('kernel-map-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Presentation Engine Logic -->
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').innerText = totalSlides.toString().padStart(2, '0');
+
+        function updateSlideUI() {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('active', idx === currentSlide);
+            });
+
+            document.getElementById('slide-number').innerText = (currentSlide + 1).toString().padStart(2, '0');
+
+            // Render progress dots
+            const dotsContainer = document.getElementById('dots-container');
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('button');
+                dot.className = `w-2 h-2 md:w-3 md:h-1.5 rounded transition ${i === currentSlide ? 'bg-rh-red w-4 md:w-6' : 'bg-rh-border hover:bg-gray-500'}`;
+                dot.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlideUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlideUI();
+            }
+        }
+
+        function goToSlide(n) {
+            if (n >= 0 && n < totalSlides) {
+                currentSlide = n;
+                updateSlideUI();
+            }
+        }
+
+        // Keyboard navigation
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullScreen();
+            }
+        });
+
+        // Fullscreen Toggle
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Modal Toggle
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        // Interactive Kernel Scenario Switcher (Slide 8)
+        function setScenario(type) {
+            const btnRun = document.getElementById('tab-run');
+            const btnLimit = document.getElementById('tab-limit');
+            const btnVolume = document.getElementById('tab-volume');
+
+            [btnRun, btnLimit, btnVolume].forEach(btn => {
+                btn.className = 'scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-rh-card text-gray-400 hover:text-white border border-rh-border';
+            });
+
+            const cmd = document.getElementById('interactive-cmd');
+            const result = document.getElementById('interactive-result');
+            const boxCli = document.getElementById('box-cli-desc');
+            const boxNs = document.getElementById('box-ns-desc');
+            const boxCg = document.getElementById('box-cg-desc');
+            const boxSec = document.getElementById('box-sec-desc');
+
+            if (type === 'run') {
+                btnRun.className = 'scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-rh-red text-white';
+                cmd.innerText = 'podman run -d --name app registry.access.redhat.com/ubi9/ubi-micro';
+                result.innerHTML = '✓ Processo criado com isolamento padrão de Namespaces + SELinux container_t.';
+                boxCli.innerText = 'Podman cria a especificação OCI em config.json e invoca crun.';
+                boxNs.innerText = 'Cria 7 namespaces novos (mnt, pid, net, user, ipc, uts, cgroup).';
+                boxCg.innerText = 'Registra em /sys/fs/cgroup/user.slice/ com limites padrão do sistema.';
+                boxSec.innerText = 'Atribui tipo container_t e gera categoria MCS aleatória (ex: s0:c20,c41).';
+            } else if (type === 'limit') {
+                btnLimit.className = 'scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-blue-600 text-white';
+                cmd.innerText = 'podman run -d --cpus 1.5 -m 512m --pids-limit 100 registry.access.redhat.com/ubi9/ubi-micro';
+                result.innerHTML = '✓ O Kernel aplicará throttles de CPU CFS, limite rígido de memória e proteção anti-fork bomb.';
+                boxCli.innerText = 'crun recebe os limites de recursos dentro do nó de configuração OCI.';
+                boxNs.innerText = 'Namespaces padrões criados sem alterações adicionais.';
+                boxCg.innerText = 'Grava "150000 100000" em cpu.max, "536870912" em memory.max e "100" em pids.max.';
+                boxSec.innerText = 'SELinux container_t e Seccomp aplicados normalmente.';
+            } else if (type === 'volume') {
+                btnVolume.className = 'scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-green-600 text-white';
+                cmd.innerText = 'podman run -d -v /var/data:/data:Z docker.io/library/postgres';
+                result.innerHTML = '✓ O diretório do host é relabeled no disco com o par MCS exato do container atual.';
+                boxCli.innerText = 'Podman executa a syscall setxattr() na pasta /var/data antes de iniciar.';
+                boxNs.innerText = 'Mount namespace monta o volume relabeled em /data dentro do container.';
+                boxCg.innerText = 'Controladores cgroups monitoram o I/O de disco via io.max/io.weight.';
+                boxSec.innerText = 'Diretório recebe container_file_t:s0:c12,c99. Apenas este container terá permissão.';
+            }
+        }
+
+        // Initialize UI on load
+        window.onload = () => {
+            updateSlideUI();
+        };
+    </script>
+</body>
+</html>

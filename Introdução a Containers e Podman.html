@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aula 1: Introdução a Containers e Podman</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rh: {
+                            red: '#EE0000',
+                            darkred: '#A30000',
+                            black: '#151515',
+                            dark: '#0f0f0f',
+                            card: '#1f1f1f',
+                            border: '#333333',
+                            gray: '#d2d2d2',
+                            lightgray: '#f0f0f0',
+                            code: '#0a0a0a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Red Hat Text', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        heading: ['Red Hat Display', 'Inter', 'sans-serif'],
+                        mono: ['Red Hat Mono', 'Fira Code', 'Courier New', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Red Hat Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;600;700;900&family=Red+Hat+Mono:wght@400;600&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Red Hat Text', sans-serif;
+            background-color: #0f0f0f;
+            color: #f0f0f0;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Red Hat Display', sans-serif;
+        }
+        pre, code {
+            font-family: 'Red Hat Mono', monospace;
+        }
+        .slide {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between select-none bg-rh-dark">
+
+    <!-- Header Navigation -->
+    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-rh-red rounded flex items-center justify-center font-heading font-black text-white text-lg tracking-tighter shadow-md">
+                RH
+            </div>
+            <div>
+                <span class="text-xs uppercase tracking-widest text-rh-red font-bold block">Módulo 1 de 3 • Fundamentos</span>
+                <h1 class="text-sm font-heading font-bold text-white tracking-wide">Introdução a Containers & Podman</h1>
+            </div>
+        </div>
+
+        <!-- Counter -->
+        <div class="flex items-center space-x-2 bg-rh-card border border-rh-border px-3 py-1 rounded-full text-xs font-mono">
+            <span class="text-gray-400">SLIDE</span>
+            <span id="slide-number" class="text-rh-red font-bold text-sm">01</span>
+            <span class="text-gray-500">/</span>
+            <span id="total-slides" class="text-gray-400">10</span>
+        </div>
+
+        <!-- Controls Header -->
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleModal('cheatsheet-modal')" class="text-xs bg-rh-card hover:bg-rh-border text-gray-200 border border-rh-border px-3 py-1.5 rounded transition flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5 text-rh-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span>Cheatsheet CLI</span>
+            </button>
+            <button onclick="toggleFullScreen()" class="p-2 text-gray-400 hover:text-white rounded hover:bg-rh-card transition" title="Tela Cheia">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Presentation Area -->
+    <main class="flex-1 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
+
+        <!-- ==================== SLIDE 1: Capa ==================== -->
+        <section class="slide active w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-6">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 bg-rh-red/10 border border-rh-red/30 rounded text-rh-red text-xs font-mono font-semibold tracking-wider uppercase">
+                <span class="w-2 h-2 rounded-full bg-rh-red animate-pulse"></span>
+                <span>Módulo 1 de 3 • Treinamento Técnico Enterprise</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black text-white leading-tight">
+                Desmistificando <span class="text-rh-red">Containers</span><br>
+                <span class="text-gray-300 font-light text-2xl md:text-4xl">A Revolução da Aplicação com Podman</span>
+            </h1>
+            <p class="max-w-3xl text-gray-400 text-base md:text-lg leading-relaxed">
+                Aprenda a empacotar, distribuir e executar aplicações de forma leve, portátil e segura sem a dependência de daemons centralizados ou privilégios de superusuário.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full pt-4">
+                <div class="bg-rh-card border-l-4 border-rh-red p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Conceito Base</span>
+                    <h3 class="font-bold text-white text-base">Máquina Virtual vs Container</h3>
+                    <p class="text-xs text-gray-400 mt-1">Por que compartilhamos o Kernel em vez de virtualizar hardware?</p>
+                </div>
+                <div class="bg-rh-card border-l-4 border-blue-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">A Ferramenta</span>
+                    <h3 class="font-bold text-white text-base">O que é o Podman?</h3>
+                    <p class="text-xs text-gray-400 mt-1">Engine OCI moderna: Daemonless, Rootless e compatível com Docker.</p>
+                </div>
+                <div class="bg-rh-card border-l-4 border-green-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Diferencial</span>
+                    <h3 class="font-bold text-white text-base">Conceito de Pods</h3>
+                    <p class="text-xs text-gray-400 mt-1">Agrupamento de containers no ambiente de desenvolvimento.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 2: O Problema e a Solução ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-5">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Por que Containers?</div>
+                <h2 class="text-3xl font-black text-white">O Fim do "Na Minha Máquina Funciona"</h2>
+                <p class="text-gray-400 text-sm mt-1">Como a indústria migrou do acoplamento direto no S.O. para unidades padronizadas de software.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Modelo Tradicional / VM -->
+                <div class="bg-rh-card border border-rh-border p-5 rounded-lg space-y-3">
+                    <div class="flex items-center justify-between border-b border-rh-border pb-2">
+                        <h3 class="font-bold text-red-400 text-base">1. Máquinas Virtuais (VMs)</h3>
+                        <span class="text-xs font-mono bg-red-950/60 text-red-300 px-2 py-0.5 rounded">Pesado & Lento</span>
+                    </div>
+                    <ul class="text-xs space-y-2 text-gray-300">
+                        <li class="flex items-start space-x-2">
+                            <span class="text-red-400">✖</span>
+                            <span><strong>S.O. Convidado Completo:</strong> Cada VM roda sua própria instância inteira de sistema operacional (Kernel + Binários + Libs).</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="text-red-400">✖</span>
+                            <span><strong>Alto Consumo:</strong> Gigabytes de memória RAM e disco alocados rigidamente via Hypervisor antes mesmo do app iniciar.</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="text-red-400">✖</span>
+                            <span><strong>Boot Demorado:</strong> Minutos para inicializar uma aplicação simples.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Modelo Container -->
+                <div class="bg-rh-card border border-rh-border p-5 rounded-lg space-y-3">
+                    <div class="flex items-center justify-between border-b border-rh-border pb-2">
+                        <h3 class="font-bold text-green-400 text-base">2. Linux Containers</h3>
+                        <span class="text-xs font-mono bg-green-950/60 text-green-300 px-2 py-0.5 rounded">Leve & Eficiente</span>
+                    </div>
+                    <ul class="text-xs space-y-2 text-gray-300">
+                        <li class="flex items-start space-x-2">
+                            <span class="text-green-400">✔</span>
+                            <span><strong>Kernel Compartilhado:</strong> O container é apenas um processo isolado executando diretamente sobre o Kernel do Host.</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="text-green-400">✔</span>
+                            <span><strong>Consumo Mínimo:</strong> Carrega apenas a aplicação e suas dependências diretas (Megabytes em vez de Gigabytes).</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="text-green-400">✔</span>
+                            <span><strong>Boot Sub-segundo:</strong> Inicia na mesma velocidade com que o Linux dispara um novo processo.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-center text-gray-300">
+                📦 <strong>Analogia Prática:</strong> Se a VM é uma casa inteira construída para cada morador, o Container é um apartamento individual que compartilha a fundação, encanamento e rede elétrica do mesmo prédio.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 3: Padrões Abertos (OCI) ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-5">
+            <div>
+                <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Padronização Global</div>
+                <h2 class="text-3xl font-black text-white">Open Container Initiative (OCI)</h2>
+                <p class="text-gray-400 text-sm mt-1">Garantindo que imagens geradas em qualquer ferramenta rodem em qualquer plataforma interoperável.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2">
+                    <div class="text-rh-red font-bold text-sm font-mono">1. OCI Image Spec</div>
+                    <h4 class="text-white font-bold text-base">Especificação de Imagem</h4>
+                    <p class="text-xs text-gray-300">
+                        Define o formato do arquivo tarball, camadas imutáveis (layers), manifiestos JSON e metadados. Qualquer imagem criada via Podman, Buildah ou Docker segue esta norma.
+                    </p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2">
+                    <div class="text-blue-400 font-bold text-sm font-mono">2. OCI Runtime Spec</div>
+                    <h4 class="text-white font-bold text-base">Especificação de Runtime</h4>
+                    <p class="text-xs text-gray-300">
+                        Define como descompactar a imagem e invocar o Kernel Linux (usando executáveis leves de baixo nível como <code class="text-blue-300 font-mono">crun</code> ou <code class="text-blue-300 font-mono">runc</code>) para criar o container.
+                    </p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2">
+                    <div class="text-green-400 font-bold text-sm font-mono">3. Distribution Spec</div>
+                    <h4 class="text-white font-bold text-base">Especificação de Registry</h4>
+                    <p class="text-xs text-gray-300">
+                        Padroniza a API HTTP para fazer push/pull de imagens em repositórios remotos como Quay.io, Docker Hub ou Red Hat Ecosystem Catalog.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-rh-card border-l-4 border-rh-red p-4 rounded-r border-t border-b border-r border-rh-border text-xs text-gray-300">
+                💡 <strong>Por que isso importa para você?</strong> Você pode construir uma imagem no seu notebook com Podman, testar localmente, subir para um repositório Quay.io e rodar no Kubernetes / OpenShift em produção sem precisar modificar uma única linha de código.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 4: Por que Podman? (A Falha do Daemon) ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-yellow-400 font-bold uppercase tracking-wider">Evolução de Arquitetura</div>
+                <h2 class="text-3xl font-black text-white">Por que o Podman Nasceu? O Fim do Monolito Daemon</h2>
+                <p class="text-gray-400 text-sm mt-1">A mudança de paradigma: saindo do modelo Cliente/Servidor centralizado para a execução direta.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Modelo Docker Antigo -->
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-amber-400 text-sm flex items-center justify-between border-b border-rh-border pb-2">
+                        <span>O Modelo Tradicional (Docker)</span>
+                        <span class="text-[10px] font-mono bg-amber-950 px-2 py-0.5 rounded text-amber-300">dockerd Daemon</span>
+                    </h3>
+                    <div class="space-y-2 text-xs text-gray-300">
+                        <p>A CLI se comunica através de um Socket com um serviço central rodando como Root em segundo plano.</p>
+                        <div class="bg-black p-2 rounded font-mono text-[11px] text-amber-300 border border-rh-border">
+                            CLI ➔ /var/run/docker.sock ➔ Daemon Root ➔ Container
+                        </div>
+                        <ul class="space-y-1 text-gray-400 text-[11px] list-disc list-inside">
+                            <li><strong>Single Point of Failure:</strong> Se o daemon reiniciar ou travar, todos os containers caem.</li>
+                            <li><strong>Vulnerabilidade de Segurança:</strong> Acesso ao socket equivale a privilégios root totais no servidor.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Modelo Podman Moderno -->
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-rh-red text-sm flex items-center justify-between border-b border-rh-border pb-2">
+                        <span>O Modelo Podman (Fork / Exec)</span>
+                        <span class="text-[10px] font-mono bg-red-950 px-2 py-0.5 rounded text-red-300">Daemonless</span>
+                    </h3>
+                    <div class="space-y-2 text-xs text-gray-300">
+                        <p>O comando instanciatamente cria o processo diretamente como filho da sua sessão de usuário.</p>
+                        <div class="bg-black p-2 rounded font-mono text-[11px] text-green-400 border border-rh-border">
+                            Podman CLI ➔ crun (OCI Runtime) ➔ Processo do Container
+                        </div>
+                        <ul class="space-y-1 text-gray-400 text-[11px] list-disc list-inside">
+                            <li><strong>Sem Daemon:</strong> Se a CLI fechar, o container continua rodando de forma independente.</li>
+                            <li><strong>Rootless Por Padrão:</strong> Usuários comuns lançam containers sem privilégios de administrador.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono flex items-center justify-between text-gray-300">
+                <span>Transição amigável de comandos:</span>
+                <code class="text-yellow-400 font-bold bg-black px-2 py-1 rounded">alias docker=podman</code>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 5: Pilares do Podman ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-5">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Características Fundamentais</div>
+                <h2 class="text-3xl font-black text-white">Os Três Pilares do Podman</h2>
+                <p class="text-gray-400 text-sm mt-1">Segurança, arquitetura limpa e prontidão para a nuvem.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <div class="w-10 h-10 bg-rh-red/20 rounded-lg flex items-center justify-center text-rh-red font-bold text-xl">
+                        1
+                    </div>
+                    <h3 class="font-bold text-white text-base">Daemonless</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Elimina o serviço em segundo plano. Economiza memória em repouso e melhora a integração com sistemas de gerenciamento como o <strong>systemd</strong> e ferramentas de auditoria Linux (<code class="text-rh-red">auditd</code>).
+                    </p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400 font-bold text-xl">
+                        2
+                    </div>
+                    <h3 class="font-bold text-white text-base">Rootless First</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Projetado do zero para rodar sem permissões de root. Utiliza <em>User Namespaces</em> para mapear seu usuário local no host para o usuário root dentro do container, isolando completamente o sistema.
+                    </p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center text-green-400 font-bold text-xl">
+                        3
+                    </div>
+                    <h3 class="font-bold text-white text-base">Pods Nativo</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Suporta o conceito de <strong>Pods</strong> do Kubernetes diretamente no seu terminal local. Agrupe múltiplos containers que compartilham endereço IP, portas e volumes antes de enviar para o cluster.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 6: CLI na Prática ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">Hands-On • Comandos Essenciais</div>
+                <h2 class="text-3xl font-black text-white">Ciclo de Vida do Container com Podman CLI</h2>
+                <p class="text-gray-400 text-sm mt-1">Comandos idênticos ao padrão da indústria para gerenciar seus workloads.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Interactive Code Block 1 -->
+                <div class="bg-rh-code border border-rh-border rounded-lg p-3.5 font-mono text-xs space-y-2">
+                    <span class="text-gray-500 text-[11px] block">// 1. Baixar e Executar um Servidor Web em Background</span>
+                    <p class="text-yellow-400">$ podman run -d --name meu-web -p 8080:80 docker.io/library/nginx</p>
+                    <p class="text-gray-500 text-[11px]">// 2. Listar containers em execução</p>
+                    <p class="text-yellow-400">$ podman ps</p>
+                    <div class="bg-black p-2 rounded text-[10px] text-gray-300">
+CONTAINER ID  IMAGE                  COMMAND   STATUS         PORTS
+a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/tcp
+                    </div>
+                </div>
+
+                <!-- Interactive Code Block 2 -->
+                <div class="bg-rh-code border border-rh-border rounded-lg p-3.5 font-mono text-xs space-y-2">
+                    <span class="text-gray-500 text-[11px] block">// 3. Inspecionar logs da aplicação</span>
+                    <p class="text-yellow-400">$ podman logs -f meu-web</p>
+                    <p class="text-gray-500 text-[11px]">// 4. Entrar dentro do container em modo interativo</p>
+                    <p class="text-yellow-400">$ podman exec -it meu-web bash</p>
+                    <p class="text-gray-500 text-[11px]">// 5. Parar e remover o container</p>
+                    <p class="text-yellow-400">$ podman stop meu-web &amp;&amp; podman rm meu-web</p>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                💡 <strong>Boa prática:</strong> Diferente do Docker, o Podman pode pedir para você escolher o registro quando o nome da imagem é "curto" (ex: <code class="text-yellow-400">nginx</code>). Prefira sempre nomes totalmente qualificados, como <code class="text-yellow-400">docker.io/library/nginx</code>, para evitar ambiguidade e prompts inesperados em scripts.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 7: O Conceito de Pods ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Recurso Exclusivo do Podman</div>
+                <h2 class="text-3xl font-black text-white">Criando e Gerenciando "Pods" Localmente</h2>
+                <p class="text-gray-400 text-sm mt-1">Como agrupar containers que trabalham juntas (ex: Aplicação Web + Banco de Dados).</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-sm">O que acontece dentro de um Pod?</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Um Pod contém um <strong>Infra Container (Pause)</strong> que reserva a rede e os recursos. Todos os outros containers adicionados ao mesmo Pod conversam entre si via <code class="text-rh-red font-mono">localhost</code>.
+                    </p>
+                    <div class="bg-black p-3 rounded font-mono text-[11px] text-gray-300 border border-rh-border space-y-1">
+                        <span class="text-rh-red font-bold">POD: meu-app-pod (Porta 8080)</span><br>
+                        ├─ Infra Container (Rede / IP isolado)<br>
+                        ├─ Container 1: App Python (Porta 5000)<br>
+                        └─ Container 2: NGINX Reverse Proxy (Porta 80)
+                    </div>
+                </div>
+
+                <div class="bg-rh-code border border-rh-border p-4 rounded-lg font-mono text-xs space-y-2">
+                    <span class="text-gray-500 text-[11px] block">// Passo A: Criar o Pod expondo a porta para o Host</span>
+                    <p class="text-yellow-400">$ podman pod create --name meu-pod -p 8080:80</p>
+                    
+                    <span class="text-gray-500 text-[11px] block mt-2">// Passo B: Adicionar container de aplicação no Pod (imagem construída localmente)</span>
+                    <p class="text-yellow-400">$ podman run -d --pod meu-pod --name app localhost/meu-app-python</p>
+                    
+                    <span class="text-gray-500 text-[11px] block mt-2">// Passo C: Adicionar NGINX no MESMO Pod</span>
+                    <p class="text-yellow-400">$ podman run -d --pod meu-pod --name proxy docker.io/library/nginx</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 8: Podman vs Docker ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">Matriz Comparativa</div>
+                <h2 class="text-3xl font-black text-white">Podman vs Docker: Qual a Diferença?</h2>
+                <p class="text-gray-400 text-sm mt-1">Comparando arquitetura, segurança e facilidade operacional para times de TI enterprise.</p>
+            </div>
+
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-left text-xs border border-rh-border bg-rh-card rounded-lg overflow-hidden">
+                    <thead class="bg-rh-black text-white font-heading font-bold uppercase text-[11px] border-b border-rh-border">
+                        <tr>
+                            <th class="p-3">Recurso</th>
+                            <th class="p-3 text-amber-400">Docker Traditional</th>
+                            <th class="p-3 text-rh-red">Red Hat Podman</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-rh-border text-gray-300 font-mono text-[11px]">
+                        <tr>
+                            <td class="p-3 font-bold text-white">Arquitetura</td>
+                            <td class="p-3 text-amber-300">Cliente / Servidor (dockerd Daemon)</td>
+                            <td class="p-3 text-green-400 font-bold">Daemonless (Fork / Exec)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white">Modo Sem Root</td>
+                            <td class="p-3 text-gray-400">Exige configurações complexas posteriores</td>
+                            <td class="p-3 text-green-400 font-bold">Nativo & Padrão (Rootless)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white">Gerenciamento de Pods</td>
+                            <td class="p-3 text-gray-400">Requer ferramenta externa (Docker Compose)</td>
+                            <td class="p-3 text-green-400 font-bold">Suporte nativo CLI (podman pod)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white">Integração S.O.</td>
+                            <td class="p-3 text-gray-400">Gerenciado pelo próprio daemon</td>
+                            <td class="p-3 text-green-400 font-bold">Integrado nativamente ao Systemd</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white">Geração YAML Kubernetes</td>
+                            <td class="p-3 text-gray-400">Não suportado nativamente</td>
+                            <td class="p-3 text-green-400 font-bold">podman kube generate</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 9: Pontes para Nuvem ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-yellow-400 font-bold uppercase tracking-wider">Do Terminal para o Kubernetes</div>
+                <h2 class="text-3xl font-black text-white">Podman: A Rampa de Acesso para a Nuvem</h2>
+                <p class="text-gray-400 text-sm mt-1">Como criar manifests Kubernetes sem precisar escrever arquivos YAML manualmente do zero.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2">
+                    <span class="text-xs font-mono text-rh-red font-bold uppercase">1. Exportar para Kubernetes YAML</span>
+                    <p class="text-xs text-gray-300">
+                        Crie seu container ou Pod localmente com Podman e exporte a especificação pronta para o Kubernetes:
+                    </p>
+                    <div class="bg-black p-2.5 rounded font-mono text-[11px] text-yellow-300 border border-rh-border">
+                        $ podman kube generate meu-pod > pod.yaml
+                    </div>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2">
+                    <span class="text-xs font-mono text-green-400 font-bold uppercase">2. Executar YAMLs do Kubernetes Localmente</span>
+                    <p class="text-xs text-gray-300">
+                        Recebeu um manifesto de um desenvolvedor? Rode direto no seu computador usando o Podman:
+                    </p>
+                    <div class="bg-black p-2.5 rounded font-mono text-[11px] text-green-400 border border-rh-border">
+                        $ podman kube play pod.yaml
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                ℹ️ <strong>Nota de versão:</strong> Antes do Podman 4.2, esses comandos eram escritos como <code class="text-gray-300">podman generate kube</code> e <code class="text-gray-300">podman play kube</code>. Essa forma antiga ainda funciona como <em>alias</em>, mas <code class="text-white font-bold">podman kube generate</code> / <code class="text-white font-bold">podman kube play</code> é a sintaxe atual recomendada.
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                🚀 <strong>Próximo Passo no Aprendizado:</strong> Agora que você entende como o Podman funciona, a próxima aula mergulhará no Kernel Linux (Namespaces, cgroups v2 e SELinux) para entender a segurança de baixo nível!
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 10: Resumo e Conclusão ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-5">
+            <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Resumo do Módulo 1</div>
+            <h2 class="text-3xl md:text-5xl font-black text-white">Pronto para o Próximo Nível</h2>
+            <p class="text-gray-400 text-sm max-w-3xl">
+                O Podman redefine o trabalho com containers ao trazer segurança avançada sem abrir mão da simplicidade e compatibilidade com o ecossistema que você já conhece.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full pt-2">
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg">
+                    <strong class="text-white text-sm block">1. Segurança Padrão Enterprise</strong>
+                    <p class="text-xs text-gray-400 mt-1">Containers rodando em modo Rootless protegem a máquina hospedeira de invasões.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg">
+                    <strong class="text-white text-sm block">2. Compatibilidade OCI</strong>
+                    <p class="text-xs text-gray-400 mt-1">Mesmos comandos e mesmas imagens sem fricção na migração.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg">
+                    <strong class="text-white text-sm block">3. Alinhado ao Kubernetes</strong>
+                    <p class="text-xs text-gray-400 mt-1">Capacidade única de manipular Pods e YAMLs no ambiente de dev.</p>
+                </div>
+            </div>
+
+            <div class="pt-2 flex items-center space-x-3">
+                <button onclick="goToSlide(0)" class="bg-rh-red hover:bg-rh-darkred text-white text-xs font-bold px-4 py-2 rounded transition shadow-lg">
+                    Reiniciar Apresentação ↺
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Presentation Controls Footer -->
+    <footer class="h-14 border-t border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+        <div class="flex items-center space-x-2">
+            <button onclick="prevSlide()" class="p-2 rounded bg-rh-card hover:bg-rh-border text-gray-200 transition border border-rh-border" title="Anterior">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="nextSlide()" class="p-2 rounded bg-rh-red hover:bg-rh-darkred text-white transition shadow" title="Próximo">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <span class="text-xs text-gray-500 font-mono hidden md:inline ml-2">Navegue com [←] e [→]</span>
+        </div>
+
+        <div id="dots-container" class="flex space-x-1.5 overflow-x-auto max-w-xs md:max-w-md py-1"></div>
+
+        <div class="text-[11px] font-mono text-gray-400">
+            Red Hat Training Platform
+        </div>
+    </footer>
+
+    <!-- Modal Cheatsheet -->
+    <div id="cheatsheet-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-rh-black border border-rh-border w-full max-w-2xl rounded-xl p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-rh-border pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 bg-rh-red rounded-full"></span>
+                    <span>Guia Rápido de Comandos Podman</span>
+                </h3>
+                <button onclick="toggleModal('cheatsheet-modal')" class="text-gray-400 hover:text-white text-lg font-mono">✕</button>
+            </div>
+            
+            <div class="space-y-2 text-xs font-mono text-gray-300">
+                <div class="bg-rh-card p-2 rounded border border-rh-border">
+                    <strong class="text-rh-red">podman run -d --name app -p 80:80 imagem</strong>
+                    <p class="text-gray-400 text-[11px]">Roda container em segundo plano mapeando porta.</p>
+                </div>
+                <div class="bg-rh-card p-2 rounded border border-rh-border">
+                    <strong class="text-rh-red">podman ps -a</strong>
+                    <p class="text-gray-400 text-[11px]">Lista todos os containers (ativos e parados).</p>
+                </div>
+                <div class="bg-rh-card p-2 rounded border border-rh-border">
+                    <strong class="text-rh-red">podman pod create --name meu-pod -p 8080:80</strong>
+                    <p class="text-gray-400 text-[11px]">Cria um pod para agrupar múltiplos containers.</p>
+                </div>
+                <div class="bg-rh-card p-2 rounded border border-rh-border">
+                    <strong class="text-rh-red">podman kube generate meu-pod > pod.yaml</strong>
+                    <p class="text-gray-400 text-[11px]">Gera o arquivo YAML para o Kubernetes.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="toggleModal('cheatsheet-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Engine JS -->
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').innerText = totalSlides.toString().padStart(2, '0');
+
+        function updateSlideUI() {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('active', idx === currentSlide);
+            });
+
+            document.getElementById('slide-number').innerText = (currentSlide + 1).toString().padStart(2, '0');
+
+            const dotsContainer = document.getElementById('dots-container');
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('button');
+                dot.className = `w-2 h-2 md:w-3 md:h-1.5 rounded transition ${i === currentSlide ? 'bg-rh-red w-4 md:w-6' : 'bg-rh-border hover:bg-gray-500'}`;
+                dot.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlideUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlideUI();
+            }
+        }
+
+        function goToSlide(n) {
+            if (n >= 0 && n < totalSlides) {
+                currentSlide = n;
+                updateSlideUI();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullScreen();
+            }
+        });
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        window.onload = () => {
+            updateSlideUI();
+        };
+    </script>
+</body>
+</html>

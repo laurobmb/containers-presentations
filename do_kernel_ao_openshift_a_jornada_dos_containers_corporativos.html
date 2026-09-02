@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Jornada dos Containers: Do Podman ao Red Hat OpenShift 4.22</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rh: {
+                            red: '#EE0000',
+                            darkred: '#A30000',
+                            black: '#151515',
+                            dark: '#0f0f0f',
+                            card: '#1e1e1e',
+                            border: '#333333',
+                            gray: '#d2d2d2',
+                            lightgray: '#f0f0f0',
+                            code: '#0b0b0b',
+                            blue: '#0066cc',
+                            purple: '#7030a0'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Red Hat Text', 'Inter', 'system-ui', 'sans-serif'],
+                        heading: ['Red Hat Display', 'Inter', 'sans-serif'],
+                        mono: ['Red Hat Mono', 'Fira Code', 'Courier New', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;600;700;900&family=Red+Hat+Mono:wght@400;600&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Red Hat Text', sans-serif;
+            background-color: #0f0f0f;
+            color: #f0f0f0;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Red Hat Display', sans-serif;
+        }
+        pre, code {
+            font-family: 'Red Hat Mono', monospace;
+        }
+        .slide {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between select-none bg-rh-dark">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-rh-red rounded flex items-center justify-center font-heading font-black text-white text-lg tracking-tighter shadow-md">
+                RH
+            </div>
+            <div>
+                <span class="text-xs uppercase tracking-widest text-rh-red font-bold block">Módulo 3 de 3 • Arquitetura de Plataforma</span>
+                <h1 class="text-sm font-heading font-bold text-white tracking-wide">Podman ➔ Kubernetes ➔ OpenShift Container Platform 4.22</h1>
+            </div>
+        </div>
+
+        <!-- Center Slide Counter -->
+        <div class="flex items-center space-x-2 bg-rh-card border border-rh-border px-3 py-1 rounded-full text-xs font-mono">
+            <span class="text-gray-400">SLIDE</span>
+            <span id="slide-number" class="text-rh-red font-bold text-sm">01</span>
+            <span class="text-gray-500">/</span>
+            <span id="total-slides" class="text-gray-400">11</span>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleModal('pipeline-modal')" class="text-xs bg-rh-card hover:bg-rh-border text-gray-200 border border-rh-border px-3 py-1.5 rounded transition flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5 text-rh-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                <span>Pilha Tecnológica</span>
+            </button>
+            <button onclick="toggleFullScreen()" class="p-2 text-gray-400 hover:text-white rounded hover:bg-rh-card transition" title="Tela Cheia">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Viewport -->
+    <main class="flex-1 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
+
+        <!-- ==================== SLIDE 1: Capa ==================== -->
+        <section class="slide active w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-6">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 bg-rh-red/10 border border-rh-red/30 rounded text-rh-red text-xs font-mono font-semibold tracking-wider uppercase">
+                <span class="w-2 h-2 rounded-full bg-rh-red animate-ping"></span>
+                <span>Módulo 3 de 3 • Evolução Arquitetural Cloud Native</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black text-white leading-tight">
+                Do Processo Isolado ao <br><span class="text-rh-red">Red Hat OpenShift 4.22</span>
+            </h1>
+            <p class="max-w-3xl text-gray-400 text-base md:text-lg leading-relaxed">
+                Entenda a trajetória completa da engenharia de software corporativa: como os pilares do kernel (Namespaces, cgroups v2 e SELinux) no <span class="text-white font-semibold">Podman</span> escalam para a orquestração do <span class="text-white font-semibold">Kubernetes</span> e se consolidam na plataforma enterprise completa do <span class="text-white font-semibold">OpenShift</span>.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full pt-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg">
+                    <span class="text-xs font-mono text-rh-red uppercase font-bold">Camada 1 • Host Local</span>
+                    <h3 class="font-bold text-white text-base mt-1">Podman &amp; Linux Kernel</h3>
+                    <p class="text-xs text-gray-400 mt-2">Isolamento de processos em um único nó, sem daemons, com SELinux MCS e rootless nativo.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg">
+                    <span class="text-xs font-mono text-blue-400 uppercase font-bold">Camada 2 • Orquestração</span>
+                    <h3 class="font-bold text-white text-base mt-1">Kubernetes (K8s)</h3>
+                    <p class="text-xs text-gray-400 mt-2">Distribuição de Pods em nós heterogêneos, reconciliação contínua (etcd) e service discovery.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg">
+                    <span class="text-xs font-mono text-green-400 uppercase font-bold">Camada 3 • Plataforma Enterprise</span>
+                    <h3 class="font-bold text-white text-base mt-1">OpenShift 4.22 (OCP)</h3>
+                    <p class="text-xs text-gray-400 mt-2">SO imutável (RHCOS), CRI-O nativo com crun, OLM v1, GitOps, Pipelines, Virtualization e SCCs.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 2: Podman como Laboratório do K8s ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Passo 1 • O Elo Local</div>
+                <h2 class="text-3xl font-black text-white">Podman: O Laboratório de Bolso do Kubernetes</h2>
+                <p class="text-gray-400 text-sm mt-1">Ao contrário de outros runtimes, o Podman foi construído pensando na unidade fundamental do Kubernetes: o <strong>Pod</strong>.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-sm flex items-center justify-between">
+                        <span>O Conceito de "Pod" no Podman</span>
+                        <span class="text-xs font-mono text-rh-red bg-rh-red/10 px-2 py-0.5 rounded">Infra Container</span>
+                    </h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Um Pod é um grupo de containers que compartilham os mesmos <strong>Network, IPC e UTS Namespaces</strong>. No Podman, assim como no Kubernetes, isso é viabilizado por um <em>Infra Container</em> (pause container) que segura os namespaces ativos enquanto os containers de aplicação sobem e descem.
+                    </p>
+                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-300 space-y-1 border border-rh-border">
+                        <span class="text-gray-500"># 1. Cria o Pod compartilhando a porta 8080:</span><br>
+                        <span class="text-yellow-400">podman pod create --name web-pod -p 8080:80</span><br><br>
+                        <span class="text-gray-500"># 2. Roda NGINX e backend no mesmo localhost:</span><br>
+                        <span class="text-yellow-400">podman run -d --pod web-pod --name proxy docker.io/library/nginx</span><br>
+                        <span class="text-yellow-400">podman run -d --pod web-pod --name api localhost/meu-backend</span>
+                    </div>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-sm flex items-center justify-between">
+                        <span>Da Máquina Local ao Manifesto K8s</span>
+                        <span class="text-xs font-mono text-green-400 bg-green-950/50 px-2 py-0.5 rounded">100% Declarativo</span>
+                    </h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        O Podman possui integração bidirecional nativa com manifestos do Kubernetes através dos comandos <code class="text-green-400">kube generate</code> e <code class="text-green-400">kube play</code>.
+                    </p>
+                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-300 space-y-2 border border-rh-border">
+                        <div>
+                            <span class="text-gray-500"># Exporta o Pod local diretamente como YAML K8s:</span><br>
+                            <span class="text-green-400">podman kube generate web-pod > pod.yaml</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500"># Roda o manifesto YAML localmente sem precisar de K8s:</span><br>
+                            <span class="text-blue-400">podman kube play pod.yaml</span>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-gray-400 italic">
+                        ✓ O desenvolvedor testa o pod exatamente como ele executará no cluster de produção.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 3: O Salto para o Kubernetes ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Passo 2 • Orquestração Multihost</div>
+                <h2 class="text-3xl font-black text-white">Por Que o Podman Sozinho Não Basta em Produção?</h2>
+                <p class="text-gray-400 text-sm mt-1">O Podman governa uma única máquina Linux. O Kubernetes orquestra milhares de máquinas sob um estado desejado.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="bg-rh-card border-t-4 border-yellow-500 p-4 rounded-b border-l border-r border-b border-rh-border space-y-2">
+                    <h3 class="font-bold text-white text-sm">1. Agendamento Inteligente (Scheduler)</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Em qual nó rodar? O Kubernetes avalia afinidades, taints, tolerations e recursos de CPU/Memória disponíveis em tempo real para alocar Pods no melhor host físico ou virtual.
+                    </p>
+                </div>
+                <div class="bg-rh-card border-t-4 border-blue-500 p-4 rounded-b border-l border-r border-b border-rh-border space-y-2">
+                    <h3 class="font-bold text-white text-sm">2. Self-Healing &amp; Resiliência</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Se um nó falha ou sofre pane elétrica, os controladores do Kubernetes detectam a perda e recriam os Pods instantaneamente em outros nós operacionais da infraestrutura.
+                    </p>
+                </div>
+                <div class="bg-rh-card border-t-4 border-green-500 p-4 rounded-b border-l border-r border-b border-rh-border space-y-2">
+                    <h3 class="font-bold text-white text-sm">3. Rede Overlay &amp; Service Discovery</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Atribuição automática de IPs dinâmicos, balanceamento de carga interno via <strong>Services</strong> e malhas de roteamento que interconectam centenas de nós em uma rede plana.
+                    </p>
+                </div>
+            </div>
+
+            <!-- K8s Architecture Diagram -->
+            <div class="bg-rh-code border border-rh-border p-3.5 rounded-lg space-y-2 font-mono text-xs">
+                <span class="text-gray-400 text-[11px] uppercase block font-bold">O Loop de Reconciliação do Kubernetes</span>
+                <div class="flex items-center justify-between bg-black p-3 rounded border border-rh-border text-center">
+                    <div class="p-2 bg-blue-950/40 rounded border border-blue-800 text-blue-300">
+                        <strong>Manifesto Declarativo</strong><br><span class="text-[10px] text-gray-400">(YAML no Git)</span>
+                    </div>
+                    <span class="text-gray-500 text-lg">➔</span>
+                    <div class="p-2 bg-purple-950/40 rounded border border-purple-800 text-purple-300">
+                        <strong>kube-apiserver &amp; etcd</strong><br><span class="text-[10px] text-gray-400">(Estado Desejado)</span>
+                    </div>
+                    <span class="text-gray-500 text-lg">➔</span>
+                    <div class="p-2 bg-amber-950/40 rounded border border-amber-800 text-amber-300">
+                        <strong>Controllers &amp; Kubelet</strong><br><span class="text-[10px] text-gray-400">(Monitoramento)</span>
+                    </div>
+                    <span class="text-gray-500 text-lg">➔</span>
+                    <div class="p-2 bg-green-950/40 rounded border border-green-800 text-green-300">
+                        <strong>Estado Real do Cluster</strong><br><span class="text-[10px] text-gray-400">(Reconciliação Contínua)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 4: Do Kubelet ao Kernel (CRI-O e crun) ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">Passo 3 • Anatomia do Worker Node</div>
+                <h2 class="text-3xl font-black text-white">Como o Kubernetes Fala com o Kernel: CRI-O e <code class="text-rh-red">crun</code></h2>
+                <p class="text-gray-400 text-sm mt-1">Conforme a documentação oficial do OpenShift 4.22, o <strong>CRI-O</strong> é o motor nativo e o <strong>crun</strong> é o runtime OCI padrão (runC está obsoleto).</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-base">O Caminho da Execução no Node</h3>
+                    <ol class="text-xs space-y-2.5 text-gray-300">
+                        <li class="flex items-start space-x-2">
+                            <span class="bg-rh-red text-white font-mono rounded px-1.5 py-0.5 text-[10px] font-bold">1</span>
+                            <span><strong>Kubelet:</strong> Agente principal do nó que recebe o pod spec da API do cluster.</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="bg-rh-red text-white font-mono rounded px-1.5 py-0.5 text-[10px] font-bold">2</span>
+                            <span><strong>gRPC / CRI API:</strong> O Kubelet invoca o <code class="text-green-400 font-mono">crio.service</code> via socket UNIX.</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="bg-rh-red text-white font-mono rounded px-1.5 py-0.5 text-[10px] font-bold">3</span>
+                            <span><strong>CRI-O Container Engine:</strong> Gerencia imagens, monta volumes e aciona o runtime OCI.</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="bg-rh-red text-white font-mono rounded px-1.5 py-0.5 text-[10px] font-bold">4</span>
+                            <span><strong>crun (OCI Runtime em C):</strong> Substitui runC com menor footprint de memória e suporte ultrarrápido a cgroups v2.</span>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="bg-rh-code border border-rh-border p-4 rounded-lg space-y-3 font-mono text-xs">
+                    <span class="text-yellow-400 font-bold block">A Reutilização dos Mesmos Pilares do Kernel:</span>
+                    <p class="text-gray-300 leading-relaxed text-[11px]">
+                        O nó do Kubernetes não faz mágica: quando o <code class="text-white">crun</code> inicia o pod solicitado pelo Kubelet, ele aplica <strong>exatamente</strong> os mesmos pilares que vimos no Podman:
+                    </p>
+                    <div class="space-y-1.5 text-[11px]">
+                        <div class="p-1.5 bg-black rounded border border-rh-border flex justify-between">
+                            <span class="text-blue-400">cgroups v2:</span>
+                            <span class="text-gray-400">kubepods.slice / burstable / guaranteed</span>
+                        </div>
+                        <div class="p-1.5 bg-black rounded border border-rh-border flex justify-between">
+                            <span class="text-green-400">SELinux:</span>
+                            <span class="text-gray-400">system_u:system_r:container_t:s0:c...</span>
+                        </div>
+                        <div class="p-1.5 bg-black rounded border border-rh-border flex justify-between">
+                            <span class="text-purple-400">Namespaces:</span>
+                            <span class="text-gray-400">mnt, pid, net, ipc, uts separados</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-blue-950/30 border border-blue-800/60 p-3 rounded-lg text-xs text-blue-200">
+                🔍 <strong>Insight de Engenharia:</strong> Podman e OpenShift utilizam a mesma biblioteca e ecossistema subjacente (containers/storage, containers/image e crun). O que você aprendeu com Podman é o que roda em cada worker do cluster!
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 5: Por que OpenShift? ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Passo 4 • O Salto Corporativo</div>
+                <h2 class="text-3xl font-black text-white">Kubernetes Puro vs. Red Hat OpenShift 4.22</h2>
+                <p class="text-gray-400 text-sm mt-1">Como a documentação do OpenShift define: <em>"A API do OpenShift é 100% Kubernetes, mas o Kubernetes sozinho não gerencia requisitos de plataforma."</em></p>
+            </div>
+
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-left text-xs border border-rh-border bg-rh-card rounded-lg overflow-hidden">
+                    <thead class="bg-rh-black text-white font-heading font-bold uppercase text-[11px] border-b border-rh-border">
+                        <tr>
+                            <th class="p-3">Dimensão</th>
+                            <th class="p-3">Kubernetes Vanilla (Upstream)</th>
+                            <th class="p-3">Red Hat OpenShift Container Platform 4.22</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-rh-border text-gray-300 font-mono text-[11px]">
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Sistema Operacional do Host</td>
+                            <td class="p-3 font-sans text-yellow-400">Heterogêneo / Manual (Ubuntu, Debian, etc.)</td>
+                            <td class="p-3 font-sans text-green-400 font-bold">RHCOS Imutável com atualizações atômicas via MCO</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Instalação &amp; Upgrades</td>
+                            <td class="p-3 font-sans text-yellow-400">Scripts complexos, risco de quebra entre componentes</td>
+                            <td class="p-3 font-sans text-green-400 font-bold">Over-The-Air (OSUS) coordenado via CVO</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Exposição de Aplicações</td>
+                            <td class="p-3 font-sans">Ingress genérico (requer controller externo)</td>
+                            <td class="p-3 font-sans text-green-400 font-bold">Routes corporativas nativas (HAProxy dedicado)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Gerenciamento de Ciclo de Vida</td>
+                            <td class="p-3 font-sans">Helm charts / Manifestos manuais</td>
+                            <td class="p-3 font-sans text-green-400 font-bold">Operator Lifecycle Manager (OLM v1) &amp; OperatorHub</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Segurança por Padrão</td>
+                            <td class="p-3 font-sans text-red-400">Permissivo por padrão (Pods rodam root se não restritos)</td>
+                            <td class="p-3 font-sans text-green-400 font-bold">Segurança estrita: SCCs restritivas e SELinux ativado</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs flex items-center justify-between">
+                <span class="text-gray-300">Compatibilidade Total da CLI: O comando <code class="text-rh-red font-mono font-bold">oc</code> estende o <code class="text-blue-400 font-mono font-bold">kubectl</code>, suportando 100% dos manifestos K8s padrão mais recursos enterprise como <code class="text-yellow-400 font-mono">oc new-app</code>, <code class="text-yellow-400 font-mono">oc project</code> e <code class="text-yellow-400 font-mono">oc adm</code>.</span>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 6: RHCOS e MCO ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">A Base Imutável • OCP 4.22</div>
+                <h2 class="text-3xl font-black text-white">RHCOS: O Sistema Operacional Gerenciado Como Container</h2>
+                <p class="text-gray-400 text-sm mt-1">No OpenShift 4, o sistema operacional hospedeiro não é tratado como uma entidade separada: ele é um componente do próprio cluster.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-sm flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-rh-red"></span>
+                        <span>Red Hat Enterprise Linux CoreOS (RHCOS)</span>
+                    </h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Baseado no RHEL (na versão 4.22, RHCOS baseia-se no RHEL 9.8), é um sistema operacional imutável desenhado especificamente para rodar containers.
+                    </p>
+                    <ul class="text-xs space-y-2 text-gray-400 font-mono">
+                        <li class="bg-black p-2 rounded border border-rh-border">
+                            <strong class="text-white">Ignition:</strong> Provisionamento no primeiro boot (particionamento, usuários e configs).
+                        </li>
+                        <li class="bg-black p-2 rounded border border-rh-border">
+                            <strong class="text-white">rpm-ostree:</strong> Atualizações atômicas transacionais em árvore de arquivos completa.
+                        </li>
+                        <li class="bg-black p-2 rounded border border-rh-border">
+                            <strong class="text-white">Bootable OCI Images:</strong> Na v4.22, o SO é entregue e versionado como imagem de container.
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-sm flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span>Machine Config Operator (MCO)</span>
+                    </h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        O MCO garante que os nós nunca sofram <em>"configuration drift"</em> (divergência de configuração manual por SSH):
+                    </p>
+                    <div class="bg-black p-3 rounded font-mono text-[11px] text-gray-300 space-y-2 border border-rh-border">
+                        <p class="text-gray-400">1. Administrador cria um manifesto <code class="text-yellow-400">MachineConfig</code></p>
+                        <p class="text-gray-400">2. MCO renderiza uma nova versão para o pool (MCP)</p>
+                        <p class="text-gray-400">3. O Machine Config Daemon (MCD) aplica a mudança no host</p>
+                        <p class="text-green-400">4. Drena o nó, atualiza o kernel/SELinux de forma atômica e reinicia</p>
+                    </div>
+                    <p class="text-[11px] text-gray-400 italic">
+                        ⚡ Zero intervenção manual em servidores: infraestrutura como código real no nível do kernel.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 7: Operators e OLM v1 ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">O Padrão Arquitetural • OCP 4.22</div>
+                <h2 class="text-3xl font-black text-white">Operators: Conhecimento Humano Codificado em Software</h2>
+                <p class="text-gray-400 text-sm mt-1">No OpenShift, os Operators não são apenas utilitários: eles formam 100% da base do Control Plane e do ecossistema de aplicações.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <h3 class="font-bold text-white text-sm">Operações Day 1 vs. Day 2 Automatizadas</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Tradicionalmente, administradores usavam scripts bash ou playbooks externos para instalar bancos de dados, configurar backups e gerenciar failover. Um Operator encapsula esse conhecimento dentro de um loop de controle nativo do Kubernetes.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                        <div class="bg-black p-2 rounded border border-rh-border">
+                            <span class="text-blue-400 font-bold block">Day 1</span>
+                            <span class="text-gray-400 text-[11px]">Deploy automático, provisionamento de discos e certificados TLS.</span>
+                        </div>
+                        <div class="bg-black p-2 rounded border border-rh-border">
+                            <span class="text-green-400 font-bold block">Day 2</span>
+                            <span class="text-gray-400 text-[11px]">Backup periódico, auto-scaling, failover e patch upgrades sem downtime.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-white text-sm">Evolução: OLM v1 no OCP 4.22</h3>
+                        <span class="text-xs font-mono bg-rh-red/20 text-rh-red px-2 py-0.5 rounded border border-rh-red/40">GA Feature</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        A documentação do OCP 4.22 consolida o <strong>OLM v1</strong> como Generally Available, introduzindo a API <code class="text-yellow-300 font-mono">ClusterExtension</code>:
+                    </p>
+                    <ul class="text-xs space-y-2 text-gray-300">
+                        <li class="flex items-start space-x-2">
+                            <span class="text-rh-red font-bold">✓</span>
+                            <span><strong>GitOps Friendly:</strong> Gerenciamento declarativo simplificado de extensões via repositório Git.</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <span class="text-rh-red font-bold">✓</span>
+                            <span><strong>Menor Complexidade:</strong> Resolução de dependências mais robusta e menor impacto no cluster.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Operator Ecosystem Banner -->
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg flex items-center justify-between text-xs">
+                <span class="text-gray-300"><strong>OperatorHub &amp; Red Hat Quay:</strong> Catálogo corporativo integrado com centenas de Operators certificados (Postgres, Kafka, OpenShift GitOps, OpenShift Pipelines, OpenShift Virtualization).</span>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 8: Segurança Enterprise e Multitenancy ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">Governança &amp; Segurança • OCP 4.22</div>
+                <h2 class="text-3xl font-black text-white">Multitenancy Corporativo: Namespaces vs. Projects</h2>
+                <p class="text-gray-400 text-sm mt-1">Como o OpenShift isola múltiplos times e workloads com base nos pilares de segurança do Linux.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg space-y-2">
+                    <h3 class="font-bold text-white text-sm text-yellow-400">1. Projects</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        No Kubernetes puro, o Namespace é um conceito técnico plano. No OpenShift, um <strong>Project</strong> é um namespace envelopado com RBAC, cotas de recursos (<code class="text-yellow-300">ResourceQuota</code>), limites e permissões de autoatendimento para desenvolvedores.
+                    </p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg space-y-2">
+                    <h3 class="font-bold text-white text-sm text-green-400">2. SELinux MCS Automático</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Lembram das categorias MCS do Podman? O OpenShift atribui um par de categorias MCS único para cada Project. Mesmo se um pod de um tenant diferente for comprometido, o SELinux no Kernel impede que ele acerte os volumes de outro projeto.
+                    </p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg space-y-2">
+                    <h3 class="font-bold text-white text-sm text-blue-400">3. Security Context Constraints</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        As <strong>SCCs</strong> controlam as ações que um pod pode executar no cluster (como rodar como root, acessar host ports ou montar host paths). Por padrão, nenhum container roda como root no OpenShift sem concessão explícita.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Dedicated Service Accounts in 4.22 -->
+            <div class="bg-green-950/30 border border-green-800/60 p-3 rounded-lg text-xs text-green-200">
+                🔒 <strong>Novidade no OpenShift 4.22:</strong> Conforme as release notes, componentes de plataforma e Operators agora utilizam <em>Service Accounts</em> estritamente dedicadas em vez da default, isolando identidades de sistema das cargas de trabalho de usuários.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 9: A Plataforma Completa ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Ecossistema Integrado • OCP 4.22</div>
+                <h2 class="text-3xl font-black text-white">A Experiência Completa do Desenvolvedor e Operador</h2>
+                <p class="text-gray-400 text-sm mt-1">Ferramentas que vêm prontas para uso sem necessidade de integração artesanal.</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                    <div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold mb-2">Git</div>
+                    <h4 class="font-bold text-white text-xs">OpenShift GitOps</h4>
+                    <p class="text-[11px] text-gray-400 mt-1">Motor baseado em <strong>Argo CD</strong> para implantações declarativas contínuas multicluster.</p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                    <div class="w-8 h-8 rounded bg-yellow-500/20 text-yellow-400 flex items-center justify-center font-bold mb-2">CI</div>
+                    <h4 class="font-bold text-white text-xs">OpenShift Pipelines</h4>
+                    <p class="text-[11px] text-gray-400 mt-1">Baseado em <strong>Tekton</strong>: cada passo de build roda em seu próprio container e escala sob demanda.</p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                    <div class="w-8 h-8 rounded bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold mb-2">VM</div>
+                    <h4 class="font-bold text-white text-xs">OpenShift Virtualization</h4>
+                    <p class="text-[11px] text-gray-400 mt-1">Baseado em <strong>KubeVirt</strong>: gerencie Máquinas Virtuais e Containers lado a lado na mesma rede e armazenamento.</p>
+                </div>
+
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                    <div class="w-8 h-8 rounded bg-rh-red/20 text-rh-red flex items-center justify-center font-bold mb-2">Net</div>
+                    <h4 class="font-bold text-white text-xs">Routes &amp; Ingress</h4>
+                    <p class="text-[11px] text-gray-400 mt-1">Exposição com suporte TLS out-of-the-box através do cluster router de alta performance.</p>
+                </div>
+            </div>
+
+            <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg space-y-2">
+                <h4 class="font-bold text-white text-xs uppercase font-mono text-rh-red">IA &amp; Recursos Avançados no OCP 4.22:</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px] text-gray-300">
+                    <div class="p-2 bg-black rounded border border-rh-border">
+                        <strong>Red Hat OpenShift Lightspeed:</strong> Assistente de IA generativa integrado diretamente no web console para diagnósticos.
+                    </div>
+                    <div class="p-2 bg-black rounded border border-rh-border">
+                        <strong>Red Hat build of Kueue:</strong> Orquestração inteligente de filas em lote e workloads distribuídos de inteligência artificial.
+                    </div>
+                    <div class="p-2 bg-black rounded border border-rh-border">
+                        <strong>Hosted Control Planes:</strong> Separação entre plano de controle e worker nodes reduzindo custos operacionais.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 10: O Mapeamento Completo ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">A Jornada Ponta a Ponta</div>
+                <h2 class="text-3xl font-black text-white">A Matriz Evolutiva: Do Kernel ao OpenShift</h2>
+                <p class="text-gray-400 text-sm mt-1">Como cada conceito se transforma ao longo da pilha tecnológica:</p>
+            </div>
+
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-left text-xs border border-rh-border bg-rh-card rounded-lg overflow-hidden">
+                    <thead class="bg-rh-black text-white font-heading font-bold uppercase text-[11px] border-b border-rh-border">
+                        <tr>
+                            <th class="p-3">Camada Conceitual</th>
+                            <th class="p-3">1. Kernel &amp; Podman</th>
+                            <th class="p-3">2. Kubernetes Padrão</th>
+                            <th class="p-3">3. Red Hat OpenShift 4.22</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-rh-border text-gray-300 font-mono text-[11px]">
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Unidade de Computação</td>
+                            <td class="p-3">Processo encapsulado / <code>podman pod</code></td>
+                            <td class="p-3 text-blue-400">Pod (1 ou + containers)</td>
+                            <td class="p-3 text-green-400">Pod + VM (OpenShift Virtualization)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Runtime de Execução</td>
+                            <td class="p-3"><code>crun</code> / Conmon</td>
+                            <td class="p-3 text-blue-400">CRI plugin (containerd / CRI-O)</td>
+                            <td class="p-3 text-green-400">CRI-O com <code>crun</code> nativo (runC descontinuado)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Isolamento de Acesso</td>
+                            <td class="p-3">SELinux MCS manual (flags :z/:Z)</td>
+                            <td class="p-3 text-blue-400">Depende da distro hospedeira</td>
+                            <td class="p-3 text-green-400">Automático por Project + SCCs estritas</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Definição do Workload</td>
+                            <td class="p-3"><code>podman run</code> / <code>kube generate</code></td>
+                            <td class="p-3 text-blue-400">Manifestos YAML (Deployment, Service)</td>
+                            <td class="p-3 text-green-400">CRDs, Operators, GitOps (Argo CD) e Routes</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Manutenção do Host</td>
+                            <td class="p-3">Manual via DNF / Package Manager</td>
+                            <td class="p-3 text-blue-400">Desconectada do orquestrador</td>
+                            <td class="p-3 text-green-400">Machine Config Operator (MCO) + RHCOS</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3.5 rounded-lg text-xs space-y-1">
+                <span class="text-white font-bold block">Conclusão para os Alunos:</span>
+                <p class="text-gray-300 leading-relaxed text-[11px]">
+                    Não há ruptura entre o que acontece no terminal com Podman e o que acontece em um cluster OpenShift de 500 nós. O OpenShift é a orquestração do Kubernetes elevada a uma plataforma empresarial completa, ancorada firmemente nos mesmos pilares de segurança e controle de recursos do Kernel Linux.
+                </p>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 11: Finalização e Perguntas ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-5">
+            <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Mão na Massa</div>
+            <h2 class="text-3xl md:text-5xl font-black text-white">Próximo Passo: Do Laboratório à Produção</h2>
+            <p class="text-gray-400 text-sm max-w-2xl leading-relaxed">
+                Agora que dominamos o funcionamento do Kernel, do Podman, a necessidade do Kubernetes e a arquitetura do OpenShift 4.22, estamos prontos para os laboratórios práticos com <code class="text-white bg-black px-1.5 py-0.5 rounded">oc</code> e <code class="text-white bg-black px-1.5 py-0.5 rounded">podman</code>.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full pt-2">
+                <div class="bg-rh-card p-4 rounded-lg border border-rh-border space-y-2">
+                    <span class="text-xs font-mono text-yellow-400 uppercase font-bold">Laboratório 1</span>
+                    <h4 class="text-white font-bold text-sm">Criar um Pod local no Podman e exportar para K8s</h4>
+                    <p class="text-xs text-gray-400">Utilizar <code class="text-white font-mono">podman kube generate</code> e inspecionar a especificação resultante.</p>
+                </div>
+                <div class="bg-rh-card p-4 rounded-lg border border-rh-border space-y-2">
+                    <span class="text-xs font-mono text-green-400 uppercase font-bold">Laboratório 2</span>
+                    <h4 class="text-white font-bold text-sm">Deploy e Exposição no OpenShift 4.22</h4>
+                    <p class="text-xs text-gray-400">Aplicar o manifesto via <code class="text-white font-mono">oc apply</code>, criar uma Route segura e inspecionar os contextos SELinux nos nós.</p>
+                </div>
+            </div>
+
+            <div class="pt-2 flex items-center space-x-3">
+                <button onclick="goToSlide(0)" class="bg-rh-red hover:bg-rh-darkred text-white text-xs font-bold px-4 py-2 rounded transition shadow-lg">
+                    Reiniciar Apresentação ↺
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Presentation Control Bar -->
+    <footer class="h-14 border-t border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+        <div class="flex items-center space-x-2">
+            <button onclick="prevSlide()" class="p-2 rounded bg-rh-card hover:bg-rh-border text-gray-200 transition border border-rh-border" title="Anterior (Seta Esquerda)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="nextSlide()" class="p-2 rounded bg-rh-red hover:bg-rh-darkred text-white transition shadow" title="Próximo (Seta Direita / Espaço)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <span class="text-xs text-gray-500 font-mono hidden md:inline ml-2">Navegue com [←] e [→] ou [Espaço]</span>
+        </div>
+
+        <!-- Mini Slide Progress Indicators -->
+        <div id="dots-container" class="flex space-x-1.5 overflow-x-auto max-w-xs md:max-w-md py-1">
+            <!-- Injected via JS -->
+        </div>
+
+        <div class="text-[11px] font-mono text-gray-400">
+            OpenShift 4.22 Architecture
+        </div>
+    </footer>
+
+    <!-- Modal: Pilha Tecnológica Completa -->
+    <div id="pipeline-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-rh-black border border-rh-border w-full max-w-3xl rounded-xl p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-rh-border pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 bg-rh-red rounded-full"></span>
+                    <span>A Pilha Completa: Do Hardware ao OpenShift 4.22</span>
+                </h3>
+                <button onclick="toggleModal('pipeline-modal')" class="text-gray-400 hover:text-white text-lg font-mono">✕</button>
+            </div>
+            
+            <div class="space-y-2 text-xs font-mono">
+                <!-- Layer 5 -->
+                <div class="p-2.5 bg-green-950/30 border border-green-800 rounded">
+                    <span class="text-green-400 font-bold block">CAMADA 5 • OpenShift Platform Services</span>
+                    <p class="text-gray-300">OLM v1, OpenShift GitOps (Argo CD), Pipelines (Tekton), Routes (HAProxy), Virtualization (KubeVirt), Lightspeed</p>
+                </div>
+                <!-- Layer 4 -->
+                <div class="p-2.5 bg-blue-950/30 border border-blue-800 rounded">
+                    <span class="text-blue-400 font-bold block">CAMADA 4 • Orquestração Kubernetes</span>
+                    <p class="text-gray-300">kube-apiserver, etcd, kube-controller-manager, kube-scheduler, Projects/Namespaces, RBAC, Services</p>
+                </div>
+                <!-- Layer 3 -->
+                <div class="p-2.5 bg-purple-950/30 border border-purple-800 rounded">
+                    <span class="text-purple-400 font-bold block">CAMADA 3 • Runtime &amp; Kubelet do Nó</span>
+                    <p class="text-gray-300">Kubelet ➔ CRI-O Engine ➔ crun (OCI C-based Runtime padrão no OCP 4.22)</p>
+                </div>
+                <!-- Layer 2 -->
+                <div class="p-2.5 bg-red-950/30 border border-red-800 rounded">
+                    <span class="text-rh-red font-bold block">CAMADA 2 • Sistema Operacional Imutável (RHCOS 9.8)</span>
+                    <p class="text-gray-300">Machine Config Operator (MCO), Ignition, OSTree atomic updates, cgroups v2, SELinux MAC/MCS, Namespaces</p>
+                </div>
+                <!-- Layer 1 -->
+                <div class="p-2.5 bg-rh-card border border-rh-border rounded text-center text-gray-400">
+                    CAMADA 1 • Bare Metal, VMware, AWS, Azure, GCP, OpenStack
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="toggleModal('pipeline-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Presentation Engine -->
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').innerText = totalSlides.toString().padStart(2, '0');
+
+        function updateSlideUI() {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('active', idx === currentSlide);
+            });
+
+            document.getElementById('slide-number').innerText = (currentSlide + 1).toString().padStart(2, '0');
+
+            const dotsContainer = document.getElementById('dots-container');
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('button');
+                dot.className = `w-2 h-2 md:w-3 md:h-1.5 rounded transition ${i === currentSlide ? 'bg-rh-red w-4 md:w-6' : 'bg-rh-border hover:bg-gray-500'}`;
+                dot.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlideUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlideUI();
+            }
+        }
+
+        function goToSlide(n) {
+            if (n >= 0 && n < totalSlides) {
+                currentSlide = n;
+                updateSlideUI();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullScreen();
+            }
+        });
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        window.onload = () => {
+            updateSlideUI();
+        };
+    </script>
+</body>
+</html>
