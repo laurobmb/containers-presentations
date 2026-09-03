@@ -104,8 +104,35 @@
     <!-- Presentation Area -->
     <main class="flex-1 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
 
+        <!-- ==================== SLIDE 0: Capa Oficial Red Hat ==================== -->
+        <section class="slide active w-full h-full flex-col">
+            <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
+                <!-- Conteúdo principal -->
+                <div class="absolute inset-0 flex flex-col justify-center pl-10 md:pl-20 pr-10" style="padding-bottom:15%;">
+                    <h1 class="italic font-heading font-black text-white text-3xl md:text-5xl leading-tight">Desmistificando Containers</h1>
+                    <h2 class="italic font-heading text-white/85 text-base md:text-2xl mt-2">A Revolução da Aplicação com Podman</h2>
+                    <div class="mt-8 space-y-3 text-white/90">
+                        <p class="italic text-sm md:text-base leading-tight">Lauro Gomes<br><span class="not-italic text-white/60 text-[11px] md:text-xs">Cloud Platform Architect</span></p>
+                        <p class="italic text-sm md:text-base leading-tight">Marcos Raposo<br><span class="not-italic text-white/60 text-[11px] md:text-xs">Cloud Platform Engineer</span></p>
+                    </div>
+                </div>
+                <!-- Selo do módulo -->
+                <div class="absolute right-[8%]" style="top:70%;" >
+                    <span class="italic font-heading text-white/70 text-lg md:text-2xl">Módulo 1</span>
+                </div>
+                <!-- Barra inferior cinza -->
+                <div class="absolute bottom-0 left-0 w-full" style="height:15%; background:#EBEBEB;">
+                    <div class="absolute bottom-0 left-[3%] w-[3px]" style="height:70%; background:#BD0000;"></div>
+                    <div class="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                        <img src="assets/rh-hat-icon.png" alt="" class="h-5 md:h-7 w-auto">
+                        <span class="font-heading font-black text-black text-base md:text-xl tracking-tight">Red Hat</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ==================== SLIDE 1: Capa ==================== -->
-        <section class="slide active w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-6">
+        <section class="slide w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-6">
             <div class="inline-flex items-center space-x-2 px-3 py-1 bg-rh-red/10 border border-rh-red/30 rounded text-rh-red text-xs font-mono font-semibold tracking-wider uppercase">
                 <span class="w-2 h-2 rounded-full bg-rh-red animate-pulse"></span>
                 <span>Módulo 1 de 3 • Treinamento Técnico Enterprise</span>
@@ -518,6 +545,39 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     <span>Voltar ao Índice</span>
                 </a>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE FINAL: Encerramento Oficial Red Hat ==================== -->
+        <section class="slide w-full h-full flex-col">
+            <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
+                <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16" style="padding-bottom:15%;">
+                    <div class="flex-1 space-y-3">
+                        <h1 class="italic font-heading font-black text-white text-4xl md:text-6xl">Thank you!</h1>
+                        <p class="italic text-white/90 text-sm md:text-base max-w-md leading-relaxed">Continue estudando: pratique <code class="not-italic font-mono bg-black/20 px-1 rounded">podman run</code>, <code class="not-italic font-mono bg-black/20 px-1 rounded">pod create</code> e <code class="not-italic font-mono bg-black/20 px-1 rounded">kube play</code> no seu terminal.</p>
+                    </div>
+                    <div class="space-y-3 text-white/90 text-[11px] md:text-xs italic shrink-0">
+                        <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">in</span><span>linkedin.com/company/red-hat</span></div>
+                        <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">▶</span><span>youtube.com/user/RedHatVideos</span></div>
+                        <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">f</span><span>facebook.com/redhatinc</span></div>
+                    </div>
+                </div>
+                <div class="absolute left-10 md:left-20 flex items-center space-x-3" style="bottom:19%;">
+                    <button onclick="goToSlide(0)" class="bg-black/25 hover:bg-black/40 text-white text-xs font-bold px-4 py-2 rounded transition">
+                        Reiniciar Apresentação ↺
+                    </button>
+                    <a href="index.html" class="bg-black/25 hover:bg-black/40 text-white text-xs font-bold px-4 py-2 rounded transition inline-flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        <span>Voltar ao Índice</span>
+                    </a>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full" style="height:15%; background:#EBEBEB;">
+                    <div class="absolute bottom-0 left-[3%] w-[3px]" style="height:70%; background:#BD0000;"></div>
+                    <div class="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                        <img src="assets/rh-hat-icon.png" alt="" class="h-5 md:h-7 w-auto">
+                        <span class="font-heading font-black text-black text-base md:text-xl tracking-tight">Red Hat</span>
+                    </div>
+                </div>
             </div>
         </section>
 
