@@ -68,6 +68,17 @@
         .glow-red {
             box-shadow: 0 0 25px rgba(238, 0, 0, 0.25);
         }
+        .terminal-cursor {
+            display: inline-block;
+            width: 0.5em;
+            margin-left: 2px;
+            background: #EE0000;
+            animation: term-blink 0.9s step-end infinite;
+        }
+        @keyframes term-blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-rh-dark">
@@ -218,27 +229,16 @@
                     </ul>
                 </div>
 
-                <!-- Live Shell Inspector Simulation -->
-                <div class="bg-rh-code border border-rh-border rounded-lg p-4 font-mono text-xs flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between pb-2 border-b border-rh-border text-gray-400 mb-3">
-                            <span class="text-green-400">terminal@rhel-host: ~</span>
-                            <span>bash</span>
-                        </div>
-                        <p class="text-gray-400"># Inspecionando os namespaces de um container rodando no Podman:</p>
-                        <p class="text-yellow-400 mt-1">$ podman run -it --rm --name web docker.io/library/nginx</p>
-                        <p class="text-gray-500">c982d61a5e4b...</p>
-                        
-                        <p class="text-yellow-400 mt-2">$ sudo lsns -p $(podman inspect -f '{{.State.Pid}}' web)</p>
-                        <div class="text-gray-300 text-[11px] mt-1 bg-black p-2 rounded border border-rh-border/50">
-<span class="text-rh-red font-bold">NS TYPE   NPROCS   PID USER   COMMAND</span>
-net        1   12458 root   nginx: master process
-mnt        1   12458 root   nginx: master process
-pid        1   12458 root   nginx: master process
-user       1   12458 root   nginx: master process
-                        </div>
+                <!-- Live Shell Inspector Simulation (animado) -->
+                <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~</span>
                     </div>
-                    <div class="mt-3 pt-2 border-t border-rh-border/60 text-gray-400 italic text-[11px]">
+                    <div id="namespaces-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[230px] overflow-y-auto"></div>
+                    <div class="px-3 py-2 border-t border-rh-border/60 text-gray-400 italic text-[11px] shrink-0">
                         💡 O host enxerga o PID real (12458); o container enxerga apenas o PID 1.
                     </div>
                 </div>
@@ -578,36 +578,26 @@ user       1   12458 root   nginx: master process
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- SELinux Diagnostic -->
-                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2.5">
-                    <h3 class="font-bold text-white text-sm flex items-center justify-between">
-                        <span>1. Investigando SELinux (AVC Denials)</span>
-                        <span class="text-xs font-mono text-rh-red">/var/log/audit/audit.log</span>
-                    </h3>
-                    <div class="bg-black p-2.5 rounded font-mono text-[11px] text-gray-300 space-y-1">
-                        <p class="text-gray-500"># Verificar se o SELinux está bloqueando seu container:</p>
-                        <p class="text-yellow-300">sudo ausearch -m AVC,USER_AVC -ts recent</p>
-                        <p class="text-gray-500 mt-2"># Obter a explicação legível e sugestão de correção:</p>
-                        <p class="text-yellow-300">sudo sealert -a /var/log/audit/audit.log</p>
-                        <p class="text-gray-500 mt-2"># Verificar contextos de arquivos montados:</p>
-                        <p class="text-yellow-300">ls -laZ /meu/diretorio/volume</p>
+                <!-- SELinux Diagnostic (animado) -->
+                <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">1. SELinux (AVC Denials)</span>
                     </div>
+                    <div id="selinux-diag-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[220px] overflow-y-auto"></div>
                 </div>
 
-                <!-- cgroups Diagnostic -->
-                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2.5">
-                    <h3 class="font-bold text-white text-sm flex items-center justify-between">
-                        <span>2. Inspecionando cgroups v2 do Container</span>
-                        <span class="text-xs font-mono text-blue-400">/sys/fs/cgroup/</span>
-                    </h3>
-                    <div class="bg-black p-2.5 rounded font-mono text-[11px] text-gray-300 space-y-1">
-                        <p class="text-gray-500"># Ver uso de recursos em tempo real estilo top:</p>
-                        <p class="text-blue-300">podman stats</p>
-                        <p class="text-gray-500 mt-2"># Ver contadores de throttling de CPU no cgroupfs:</p>
-                        <p class="text-blue-300">cat /sys/fs/cgroup/.../cpu.stat</p>
-                        <p class="text-gray-500 mt-2"># Checar se o container sofreu OOM (Out of Memory):</p>
-                        <p class="text-blue-300">cat /sys/fs/cgroup/.../memory.events</p>
+                <!-- cgroups Diagnostic (animado) -->
+                <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">2. cgroups v2 (/sys/fs/cgroup/)</span>
                     </div>
+                    <div id="cgroups-diag-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[220px] overflow-y-auto"></div>
                 </div>
             </div>
 
@@ -831,7 +821,175 @@ user       1   12458 root   nginx: master process
                 dot.onclick = () => goToSlide(i);
                 dotsContainer.appendChild(dot);
             }
+
+            // Slide 2 (Namespaces): inicia/reinicia o terminal animado do lsns
+            if (currentSlide === 2) {
+                startNamespacesAnimation();
+            } else {
+                stopNamespacesAnimation();
+            }
+
+            // Slide 9 (Troubleshooting): inicia/reinicia os dois terminais de diagnóstico
+            if (currentSlide === 9) {
+                startSelinuxDiagAnimation();
+                startCgroupsDiagAnimation();
+            } else {
+                stopSelinuxDiagAnimation();
+                stopCgroupsDiagAnimation();
+            }
         }
+
+        // ==================== Motor genérico de terminal animado ====================
+        // Reutilizado pelos 3 terminais deste deck (Namespaces, SELinux Diag, cgroups Diag).
+        function createTerminalAnimator(elementId) {
+            let gen = 0;
+            let i = 0;
+
+            function run(script) {
+                gen++;
+                const myGen = gen;
+                const el = document.getElementById(elementId);
+                if (!el) return;
+                el.innerHTML = '';
+                i = 0;
+
+                function scrollDown() {
+                    el.scrollTop = el.scrollHeight;
+                }
+
+                function makeLine() {
+                    const line = document.createElement('div');
+                    line.className = 'flex flex-wrap items-baseline';
+                    return line;
+                }
+
+                function typeLine(step, done) {
+                    const line = makeLine();
+                    const promptSpan = document.createElement('span');
+                    promptSpan.className = 'text-green-400 font-bold pr-2 shrink-0';
+                    promptSpan.textContent = step.prompt;
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'text-yellow-300 break-all';
+                    const cursor = document.createElement('span');
+                    cursor.className = 'terminal-cursor';
+                    line.appendChild(promptSpan);
+                    line.appendChild(textSpan);
+                    line.appendChild(cursor);
+                    el.appendChild(line);
+
+                    let charIdx = 0;
+                    (function typeChar() {
+                        if (gen !== myGen) return;
+                        if (charIdx <= step.text.length) {
+                            textSpan.textContent = step.text.slice(0, charIdx);
+                            charIdx++;
+                            scrollDown();
+                            setTimeout(typeChar, 22 + Math.random() * 35);
+                        } else {
+                            if (step.idleCursor) {
+                                setTimeout(() => {
+                                    if (gen !== myGen) return;
+                                    el.innerHTML = '';
+                                    i = 0;
+                                    runStep();
+                                }, 2600);
+                                return;
+                            }
+                            cursor.remove();
+                            setTimeout(done, 280);
+                        }
+                    })();
+                }
+
+                function printLine(step, done) {
+                    const line = makeLine();
+                    line.className += ' whitespace-pre-wrap break-all ' + (step.color || 'text-gray-400');
+                    line.textContent = step.text;
+                    el.appendChild(line);
+                    scrollDown();
+                    setTimeout(done, 110);
+                }
+
+                function runStep() {
+                    if (gen !== myGen) return;
+                    if (i >= script.length) return;
+                    const step = script[i];
+                    i++;
+                    if (step.type) {
+                        typeLine(step, runStep);
+                    } else {
+                        printLine(step, runStep);
+                    }
+                }
+
+                runStep();
+            }
+
+            function stop() {
+                gen++;
+                const el = document.getElementById(elementId);
+                if (el) el.innerHTML = '';
+            }
+
+            return { run, stop };
+        }
+
+        const namespacesAnimator = createTerminalAnimator('namespaces-terminal');
+        function startNamespacesAnimation() {
+            namespacesAnimator.run([
+                { text: '# Inspecionando os namespaces de um container rodando no Podman:', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman run -d --name web docker.io/library/nginx', type: true },
+                { text: 'c982d61a5e4b7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2', color: 'text-gray-500' },
+                { prompt: '$', text: "sudo lsns -p $(podman inspect -f '{{.State.Pid}}' web)", type: true },
+                { text: 'NS TYPE   NPROCS   PID USER   COMMAND', color: 'text-rh-red font-bold' },
+                { text: 'net        1   12458 root   nginx: master process', color: 'text-gray-300' },
+                { text: 'mnt        1   12458 root   nginx: master process', color: 'text-gray-300' },
+                { text: 'pid        1   12458 root   nginx: master process', color: 'text-gray-300' },
+                { text: 'user       1   12458 root   nginx: master process', color: 'text-gray-300' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopNamespacesAnimation() { namespacesAnimator.stop(); }
+
+        const selinuxDiagAnimator = createTerminalAnimator('selinux-diag-terminal');
+        function startSelinuxDiagAnimation() {
+            selinuxDiagAnimator.run([
+                { text: '# Verificar se o SELinux está bloqueando seu container:', color: 'text-gray-500' },
+                { prompt: '$', text: 'sudo ausearch -m AVC,USER_AVC -ts recent', type: true },
+                { text: 'type=AVC msg=audit(...): avc: denied { read } for pid=12458 comm="nginx"', color: 'text-red-300' },
+                { text: 'scontext=system_u:system_r:container_t:s0:c142,c859', color: 'text-red-300' },
+                { text: 'tcontext=system_u:object_r:shadow_t:s0 tclass=file', color: 'text-red-300' },
+                { text: '# Obter a explicação legível e a sugestão de correção:', color: 'text-gray-500' },
+                { prompt: '$', text: 'sudo sealert -a /var/log/audit/audit.log', type: true },
+                { text: 'SELinux is preventing container_t from read access on shadow_t.', color: 'text-gray-300' },
+                { text: '*** Sugestão: rotule o volume com :z ou :Z no podman run -v', color: 'text-green-400' },
+                { text: '# Verificar contextos de arquivos montados:', color: 'text-gray-500' },
+                { prompt: '$', text: 'ls -laZ /meu/diretorio/volume', type: true },
+                { text: 'unconfined_u:object_r:container_file_t:s0:c142,c859 dados.db', color: 'text-gray-300' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopSelinuxDiagAnimation() { selinuxDiagAnimator.stop(); }
+
+        const cgroupsDiagAnimator = createTerminalAnimator('cgroups-diag-terminal');
+        function startCgroupsDiagAnimation() {
+            cgroupsDiagAnimator.run([
+                { text: '# Ver uso de recursos em tempo real, estilo top:', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman stats --no-stream', type: true },
+                { text: 'CONTAINER  CPU %   MEM USAGE / LIMIT   NET I/O', color: 'text-blue-300' },
+                { text: 'web        0.42%   38.1MB / 512MB      1.2kB / 848B', color: 'text-gray-300' },
+                { text: '# Ver contadores de throttling de CPU no cgroupfs:', color: 'text-gray-500' },
+                { prompt: '$', text: 'cat /sys/fs/cgroup/.../cpu.stat', type: true },
+                { text: 'nr_periods 8231', color: 'text-gray-300' },
+                { text: 'nr_throttled 12', color: 'text-yellow-300' },
+                { text: 'throttled_usec 41823', color: 'text-yellow-300' },
+                { text: '# Checar se o container sofreu OOM (Out of Memory):', color: 'text-gray-500' },
+                { prompt: '$', text: 'cat /sys/fs/cgroup/.../memory.events', type: true },
+                { text: 'oom_kill 0', color: 'text-green-400' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopCgroupsDiagAnimation() { cgroupsDiagAnimator.stop(); }
 
         function nextSlide() {
             if (currentSlide < totalSlides - 1) {
@@ -954,7 +1112,7 @@ user       1   12458 root   nginx: master process
             {
                 title: 'Slide 2 · Namespaces em profundidade',
                 body: `
-                    <p>Se possível, rode o comando <code class="text-yellow-400">lsns</code> ao vivo em vez de só mostrar a captura de tela — reforça que isso não é teoria abstrata, é uma inspeção real do sistema em execução.</p>
+                    <p>O terminal à direita é animado e roda em loop automaticamente. Se possível, complemente rodando o comando <code class="text-yellow-400">lsns</code> ao vivo no seu próprio terminal — reforça que isso não é teoria abstrata, é uma inspeção real do sistema em execução.</p>
                     <p>Detalhe técnico importante: as syscalls <code class="text-rh-red">clone()</code> (cria um novo processo já dentro de um ou mais namespaces novos) e <code class="text-rh-red">unshare()</code> (remove o processo <em>atual</em> de um namespace compartilhado, colocando-o em um novo) são as duas formas de um processo entrar em um namespace. O Podman usa majoritariamente <code class="text-rh-red">clone()</code> ao criar o container.</p>
                     <p>Sobre o PID Namespace especificamente: dentro do container o processo principal sempre é <strong>PID 1</strong> — isso tem uma implicação prática importante (que pode ser citada, mesmo sem aprofundar): o PID 1 precisa tratar sinais corretamente (SIGTERM/SIGCHLD) ou o container pode não encerrar de forma limpa, daí ferramentas como <code class="text-rh-red">tini</code> ou <code class="text-rh-red">dumb-init</code> serem usadas como "PID 1" em imagens de produção.</p>
                     <div class="mt-3 pt-3 border-t border-rh-border/50">
@@ -1055,7 +1213,7 @@ user       1   12458 root   nginx: master process
             {
                 title: 'Slide 9 · Ferramentas de diagnóstico no dia a dia',
                 body: `
-                    <p>Slide de referência rápida — vale sugerir que os alunos salvem/anotem estes comandos, pois são os primeiros passos de troubleshooting em qualquer ambiente RHEL corporativo com containers.</p>
+                    <p>Os dois terminais deste slide são animados e rodam em loop automaticamente. Slide de referência rápida — vale sugerir que os alunos salvem/anotem estes comandos, pois são os primeiros passos de troubleshooting em qualquer ambiente RHEL corporativo com containers.</p>
                     <p><code class="text-yellow-300">sealert</code> é particularmente valioso para principiantes: ele não apenas mostra o erro do SELinux, mas sugere o comando exato de correção (geralmente algo como <code class="text-yellow-300">semanage fcontext</code> + <code class="text-yellow-300">restorecon</code>), reduzindo a curva de aprendizado.</p>
                     <p>Sobre <code class="text-blue-300">memory.events</code>: o campo <code class="text-blue-300">oom_kill</code> dentro desse arquivo mostra quantas vezes o OOM Killer atuou naquele cgroup — extremamente útil para diagnosticar containers que reiniciam sozinhos sem mensagem de erro clara na aplicação.</p>
                     <div class="mt-3 pt-3 border-t border-rh-border/50">

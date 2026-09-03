@@ -66,6 +66,17 @@
             background: #444;
             border-radius: 3px;
         }
+        .terminal-cursor {
+            display: inline-block;
+            width: 0.5em;
+            margin-left: 2px;
+            background: #EE0000;
+            animation: term-blink 0.9s step-end infinite;
+        }
+        @keyframes term-blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-rh-dark">
@@ -184,12 +195,14 @@
                     <p class="text-xs text-gray-300 leading-relaxed">
                         Um Pod é um grupo de containers que compartilham os mesmos <strong>Network, IPC e UTS Namespaces</strong>. No Podman, assim como no Kubernetes, isso é viabilizado por um <em>Infra Container</em> (pause container) que segura os namespaces ativos enquanto os containers de aplicação sobem e descem.
                     </p>
-                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-300 space-y-1 border border-rh-border">
-                        <span class="text-gray-500"># 1. Cria o Pod compartilhando a porta 8080:</span><br>
-                        <span class="text-yellow-400">podman pod create --name web-pod -p 8080:80</span><br><br>
-                        <span class="text-gray-500"># 2. Roda NGINX e backend no mesmo localhost:</span><br>
-                        <span class="text-yellow-400">podman run -it --rm --pod web-pod --name proxy docker.io/library/nginx</span><br>
-                        <span class="text-yellow-400">podman run -it --rm --pod web-pod --name api localhost/meu-backend</span>
+                    <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                        <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                            <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~</span>
+                        </div>
+                        <div id="pod-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[190px] overflow-y-auto"></div>
                     </div>
                 </div>
 
@@ -201,15 +214,14 @@
                     <p class="text-xs text-gray-300 leading-relaxed">
                         O Podman possui integração bidirecional nativa com manifestos do Kubernetes através dos comandos <code class="text-green-400">kube generate</code> e <code class="text-green-400">kube play</code>.
                     </p>
-                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-300 space-y-2 border border-rh-border">
-                        <div>
-                            <span class="text-gray-500"># Exporta o Pod local diretamente como YAML K8s:</span><br>
-                            <span class="text-green-400">podman kube generate web-pod > pod.yaml</span>
+                    <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                        <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                            <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~</span>
                         </div>
-                        <div>
-                            <span class="text-gray-500"># Roda o manifesto YAML localmente sem precisar de K8s:</span><br>
-                            <span class="text-blue-400">podman kube play pod.yaml</span>
-                        </div>
+                        <div id="kube-bridge-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[150px] overflow-y-auto"></div>
                     </div>
                     <p class="text-[11px] text-gray-400 italic">
                         ✓ O desenvolvedor testa o pod exatamente como ele executará no cluster de produção.
@@ -817,7 +829,145 @@
                 dot.onclick = () => goToSlide(i);
                 dotsContainer.appendChild(dot);
             }
+
+            // Slide 2 (Podman como Laboratório do K8s): inicia/reinicia os terminais animados
+            if (currentSlide === 2) {
+                startPodAnimation();
+                startKubeBridgeAnimation();
+            } else {
+                stopPodAnimation();
+                stopKubeBridgeAnimation();
+            }
         }
+
+        // ==================== Motor genérico de terminal animado ====================
+        function createTerminalAnimator(elementId) {
+            let gen = 0;
+            let i = 0;
+
+            function run(script) {
+                gen++;
+                const myGen = gen;
+                const el = document.getElementById(elementId);
+                if (!el) return;
+                el.innerHTML = '';
+                i = 0;
+
+                function scrollDown() {
+                    el.scrollTop = el.scrollHeight;
+                }
+
+                function makeLine() {
+                    const line = document.createElement('div');
+                    line.className = 'flex flex-wrap items-baseline';
+                    return line;
+                }
+
+                function typeLine(step, done) {
+                    const line = makeLine();
+                    const promptSpan = document.createElement('span');
+                    promptSpan.className = 'text-green-400 font-bold pr-2 shrink-0';
+                    promptSpan.textContent = step.prompt;
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'text-yellow-300 break-all';
+                    const cursor = document.createElement('span');
+                    cursor.className = 'terminal-cursor';
+                    line.appendChild(promptSpan);
+                    line.appendChild(textSpan);
+                    line.appendChild(cursor);
+                    el.appendChild(line);
+
+                    let charIdx = 0;
+                    (function typeChar() {
+                        if (gen !== myGen) return;
+                        if (charIdx <= step.text.length) {
+                            textSpan.textContent = step.text.slice(0, charIdx);
+                            charIdx++;
+                            scrollDown();
+                            setTimeout(typeChar, 22 + Math.random() * 35);
+                        } else {
+                            if (step.idleCursor) {
+                                setTimeout(() => {
+                                    if (gen !== myGen) return;
+                                    el.innerHTML = '';
+                                    i = 0;
+                                    runStep();
+                                }, 2600);
+                                return;
+                            }
+                            cursor.remove();
+                            setTimeout(done, 280);
+                        }
+                    })();
+                }
+
+                function printLine(step, done) {
+                    const line = makeLine();
+                    line.className += ' whitespace-pre-wrap break-all ' + (step.color || 'text-gray-400');
+                    line.textContent = step.text;
+                    el.appendChild(line);
+                    scrollDown();
+                    setTimeout(done, 110);
+                }
+
+                function runStep() {
+                    if (gen !== myGen) return;
+                    if (i >= script.length) return;
+                    const step = script[i];
+                    i++;
+                    if (step.type) {
+                        typeLine(step, runStep);
+                    } else {
+                        printLine(step, runStep);
+                    }
+                }
+
+                runStep();
+            }
+
+            function stop() {
+                gen++;
+                const el = document.getElementById(elementId);
+                if (el) el.innerHTML = '';
+            }
+
+            return { run, stop };
+        }
+
+        const podAnimator = createTerminalAnimator('pod-terminal');
+        function startPodAnimation() {
+            podAnimator.run([
+                { text: '# 1. Cria o Pod compartilhando a porta 8080:', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman pod create --name web-pod -p 8080:80', type: true },
+                { text: 'a1b2c3d4e5f6...', color: 'text-gray-500' },
+                { text: '# 2. Roda NGINX e backend no mesmo localhost:', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman run -d --pod web-pod --name proxy docker.io/library/nginx', type: true },
+                { text: 'b7c8d9e0f1a2...', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman run -d --pod web-pod --name api localhost/meu-backend', type: true },
+                { text: 'c3d4e5f6a7b8...', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman ps --pod', type: true },
+                { text: 'CONTAINER ID  NAMES   POD ID        PODNAME', color: 'text-gray-400' },
+                { text: 'b7c8d9e0f1a2  proxy   a1b2c3d4e5f6  web-pod', color: 'text-green-400' },
+                { text: 'c3d4e5f6a7b8  api     a1b2c3d4e5f6  web-pod', color: 'text-green-400' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopPodAnimation() { podAnimator.stop(); }
+
+        const kubeBridgeAnimator = createTerminalAnimator('kube-bridge-terminal');
+        function startKubeBridgeAnimation() {
+            kubeBridgeAnimator.run([
+                { text: '# Exporta o Pod local diretamente como YAML K8s:', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman kube generate web-pod > pod.yaml', type: true },
+                { text: '# Roda o manifesto YAML localmente sem precisar de K8s:', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman kube play pod.yaml', type: true },
+                { text: 'Pod: a1b2c3d4e5f6...', color: 'text-blue-300' },
+                { text: 'Container: b7c8d9e0f1a2...', color: 'text-blue-300' },
+                { text: 'Container: c3d4e5f6a7b8...', color: 'text-blue-300' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopKubeBridgeAnimation() { kubeBridgeAnimator.stop(); }
 
         function nextSlide() {
             if (currentSlide < totalSlides - 1) {
