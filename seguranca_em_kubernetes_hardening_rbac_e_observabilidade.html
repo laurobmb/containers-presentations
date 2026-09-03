@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segurança em Kubernetes: Hardening, RBAC e Observabilidade</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rh: {
+                            red: '#EE0000',
+                            darkred: '#A30000',
+                            black: '#151515',
+                            dark: '#0f0f0f',
+                            card: '#1f1f1f',
+                            border: '#333333',
+                            gray: '#d2d2d2',
+                            lightgray: '#f0f0f0',
+                            code: '#0a0a0a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Red Hat Text', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        heading: ['Red Hat Display', 'Inter', 'sans-serif'],
+                        mono: ['Red Hat Mono', 'Fira Code', 'Courier New', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Red Hat Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;600;700;900&family=Red+Hat+Mono:wght@400;600&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Red Hat Text', sans-serif;
+            background-color: #0f0f0f;
+            color: #f0f0f0;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Red Hat Display', sans-serif;
+        }
+        pre, code {
+            font-family: 'Red Hat Mono', monospace;
+        }
+        .slide {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+        .terminal-cursor {
+            display: inline-block;
+            width: 0.5em;
+            margin-left: 2px;
+            background: #EE0000;
+            animation: term-blink 0.9s step-end infinite;
+        }
+        @keyframes term-blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-rh-dark">
+
+    <!-- Header Navigation -->
+    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 flex items-center justify-center">
+                <img src="assets/rh-hat-icon.png" alt="Red Hat" class="w-full h-full object-contain drop-shadow-md">
+            </div>
+            <div>
+                <span class="text-xs uppercase tracking-widest text-rh-red font-bold block">Módulo 4 de 4 • Segurança e Observabilidade</span>
+                <h1 class="text-sm font-heading font-bold text-white tracking-wide">Segurança em Kubernetes: Hardening, RBAC & Observability</h1>
+            </div>
+        </div>
+
+        <!-- Counter -->
+        <div class="flex items-center space-x-2 bg-rh-card border border-rh-border px-3 py-1 rounded-full text-xs font-mono">
+            <span class="text-gray-400">SLIDE</span>
+            <span id="slide-number" class="text-rh-red font-bold text-sm">01</span>
+            <span class="text-gray-500">/</span>
+            <span id="total-slides" class="text-gray-400">14</span>
+        </div>
+
+        <!-- Controls Header -->
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleModal('defense-map-modal')" class="text-xs bg-rh-card hover:bg-rh-border text-gray-200 border border-rh-border px-3 py-1.5 rounded transition flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5 text-rh-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <span>Camadas de Defesa</span>
+            </button>
+            <button onclick="toggleFullScreen()" class="p-2 text-gray-400 hover:text-white rounded hover:bg-rh-card transition" title="Tela Cheia">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Presentation Area -->
+    <main class="flex-1 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
+
+        <!-- Botão flutuante: Notas do Apresentador (presente em todos os slides) -->
+        <button onclick="showPresenterNotes()" class="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-30 flex items-center space-x-2 bg-rh-card hover:bg-rh-red border border-rh-border hover:border-rh-red text-gray-200 hover:text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg transition select-none" title="Notas do Apresentador">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="hidden md:inline">Notas do Apresentador</span>
+        </button>
+
+        <!-- ==================== SLIDE 0: Capa Oficial Red Hat ==================== -->
+        <section class="slide active w-full h-full flex-col">
+            <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
+                <div class="absolute inset-0 flex flex-col justify-center pl-10 md:pl-20 pr-10" style="padding-bottom:15%;">
+                    <h1 class="italic font-heading font-black text-white text-3xl md:text-5xl leading-tight">Segurança em Kubernetes</h1>
+                    <h2 class="italic font-heading text-white/85 text-base md:text-2xl mt-2">Hardening, RBAC e Observabilidade na Prática</h2>
+                    <div class="mt-8 space-y-3 text-white/90">
+                        <p class="italic text-sm md:text-base leading-tight">Lauro Gomes<br><span class="not-italic text-white/60 text-[11px] md:text-xs">Cloud Platform Architect</span></p>
+                        <p class="italic text-sm md:text-base leading-tight">Marcos Raposo<br><span class="not-italic text-white/60 text-[11px] md:text-xs">Cloud Platform Engineer</span></p>
+                    </div>
+                </div>
+                <div class="absolute right-[8%]" style="top:70%;">
+                    <span class="italic font-heading text-white/70 text-lg md:text-2xl">Módulo 4</span>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full" style="height:15%; background:#EBEBEB;">
+                    <div class="absolute bottom-0 left-[3%] w-[3px]" style="height:70%; background:#BD0000;"></div>
+                    <div class="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                        <img src="assets/rh-hat-icon.png" alt="" class="h-5 md:h-7 w-auto">
+                        <span class="font-heading font-black text-black text-base md:text-xl tracking-tight">Red Hat</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 1: Capa / Agenda ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-6">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 bg-rh-red/10 border border-rh-red/30 rounded text-rh-red text-xs font-mono font-semibold tracking-wider uppercase">
+                <span class="w-2 h-2 rounded-full bg-rh-red animate-ping"></span>
+                <span>Módulo 4 de 4 • Segurança e Observabilidade Cloud Native</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black text-white leading-tight">
+                Segurança em <span class="text-rh-red">Kubernetes</span> na Prática<br>
+                <span class="text-gray-300 font-light text-2xl md:text-4xl">Hardening, RBAC, Secrets e Observabilidade em Produção</span>
+            </h1>
+            <p class="max-w-3xl text-gray-400 text-base md:text-lg leading-relaxed">
+                Kubernetes <strong class="text-white">não é seguro por padrão</strong>: RBAC permissivo, Secrets em texto base64, ausência de Network Policies e falta de auditoria são configurações-padrão que um administrador precisa corrigir explicitamente.
+            </p>
+            <p class="text-xs text-gray-500 font-mono uppercase tracking-wider">↳ Continuação do Módulo 3: você viu que o OpenShift já aplica SCCs e SELinux MCS automaticamente. Agora vamos entender <em>por que</em> isso existe e o que fazer quando essas proteções não vêm de fábrica (Kubernetes puro).</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full pt-4">
+                <div class="bg-rh-card border-l-4 border-blue-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">"C" 1</span>
+                    <h3 class="font-bold text-white text-base">Cloud</h3>
+                    <p class="text-xs text-gray-400 mt-1">Infraestrutura, IAM e hardening do host onde o cluster roda.</p>
+                </div>
+                <div class="bg-rh-card border-l-4 border-purple-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">"C" 2</span>
+                    <h3 class="font-bold text-white text-base">Cluster</h3>
+                    <p class="text-xs text-gray-400 mt-1">RBAC, Network Policies, Secrets e o control plane.</p>
+                </div>
+                <div class="bg-rh-card border-l-4 border-amber-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">"C" 3</span>
+                    <h3 class="font-bold text-white text-base">Container</h3>
+                    <p class="text-xs text-gray-400 mt-1">Imagem, non-root, scanning e base image confiável.</p>
+                </div>
+                <div class="bg-rh-card border-l-4 border-green-500 p-4 rounded-r border-t border-b border-r border-rh-border">
+                    <span class="text-xs font-mono text-gray-400 uppercase">"C" 4</span>
+                    <h3 class="font-bold text-white text-base">Code</h3>
+                    <p class="text-xs text-gray-400 mt-1">Dependências, segredos hard-coded e vulnerabilidades na app.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 2: Modelo de Ameaças ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-5">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Por Que Proteger o Cluster? • Modelo de Ameaças (NSA/CISA)</div>
+                <h2 class="text-3xl font-black text-white">As 3 Fontes de Comprometimento em Kubernetes</h2>
+                <p class="text-gray-400 text-sm mt-1">Segundo o guia oficial da NSA e CISA, praticamente todo incidente em clusters se origina em uma destas três fontes.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2">
+                    <h3 class="font-bold text-amber-400 text-sm">1. Supply Chain</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Uma imagem, dependência ou peça de infraestrutura comprometida entra no cluster de forma "confiável". Inclui a camada de aplicação, o container runtime e a própria infraestrutura dos nós.
+                    </p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2">
+                    <h3 class="font-bold text-red-400 text-sm">2. Malicious Threat Actor</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Um atacante externo explora APIs expostas: o control plane (kube-apiserver), os worker nodes (kubelet/kube-proxy) ou a própria aplicação containerizada acessível pela internet.
+                    </p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2">
+                    <h3 class="font-bold text-blue-400 text-sm">3. Insider Threat</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Administradores com <code class="text-blue-300">kubectl exec</code>, usuários com credenciais válidas ou até o próprio provedor de nuvem — todos com acesso legítimo que pode ser abusado.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                ⚠️ <strong>O ponto central desta aula:</strong> nada disso é hipotético — RBAC, Network Policies, criptografia de Secrets e auditoria são <strong class="text-white">todos desabilitados ou permissivos por padrão</strong> em uma instalação vanilla do Kubernetes. Corrigir isso é responsabilidade explícita do administrador.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 3: As 4 Cs da Segurança Cloud Native ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-5">
+            <div>
+                <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Modelo Mental • Defesa em Camadas</div>
+                <h2 class="text-3xl font-black text-white">As 4 Cs da Segurança Cloud Native</h2>
+                <p class="text-gray-400 text-sm mt-1">Cada camada externa protege as internas — mas uma falha em qualquer uma delas pode comprometer todo o sistema.</p>
+            </div>
+
+            <div class="flex items-center justify-center py-2">
+                <div class="w-full max-w-xl aspect-square relative flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-full border-2 border-blue-500/50 bg-blue-500/5 flex items-start justify-center pt-3">
+                        <span class="text-blue-400 font-mono text-xs font-bold uppercase">Cloud</span>
+                    </div>
+                    <div class="absolute inset-[12%] rounded-full border-2 border-purple-500/50 bg-purple-500/5 flex items-start justify-center pt-3">
+                        <span class="text-purple-400 font-mono text-xs font-bold uppercase">Cluster</span>
+                    </div>
+                    <div class="absolute inset-[26%] rounded-full border-2 border-amber-500/50 bg-amber-500/5 flex items-start justify-center pt-2">
+                        <span class="text-amber-400 font-mono text-[11px] font-bold uppercase">Container</span>
+                    </div>
+                    <div class="absolute inset-[42%] rounded-full border-2 border-green-500 bg-green-500/10 flex items-center justify-center">
+                        <span class="text-green-400 font-mono text-[11px] font-bold uppercase">Code</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                <div class="bg-rh-card border-t-2 border-blue-500 p-2.5 rounded-b text-gray-300"><strong class="text-blue-400 block mb-0.5">Cloud</strong>VMs/host hardening, firewalls, IAM do provedor de nuvem, proteção de metadata services.</div>
+                <div class="bg-rh-card border-t-2 border-purple-500 p-2.5 rounded-b text-gray-300"><strong class="text-purple-400 block mb-0.5">Cluster</strong>RBAC, Network Policies, criptografia do etcd, auditoria — os próximos slides desta aula.</div>
+                <div class="bg-rh-card border-t-2 border-amber-500 p-2.5 rounded-b text-gray-300"><strong class="text-amber-400 block mb-0.5">Container</strong>Non-root, read-only filesystem, scanning de imagem — o Módulo 1 revisitado.</div>
+                <div class="bg-rh-card border-t-2 border-green-500 p-2.5 rounded-b text-gray-300"><strong class="text-green-400 block mb-0.5">Code</strong>Dependências vulneráveis, segredos hard-coded, SAST/SCA no seu pipeline de CI/CD.</div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 4: Build-Time Security ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">Fase 1 de 3 • Build</div>
+                <h2 class="text-3xl font-black text-white">Build-Time Security: Blindando a Imagem Antes do Deploy</h2>
+                <p class="text-gray-400 text-sm mt-1">Retomando o <code class="text-purple-400">podman build</code> do Módulo 1 — agora com um usuário não-root e escaneamento de vulnerabilidades.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2.5">
+                    <h3 class="font-bold text-white text-sm flex items-center justify-between">
+                        <span>Containerfile Não-Root</span>
+                        <span class="text-xs font-mono text-purple-400 bg-purple-950/50 px-2 py-0.5 rounded">NSA Appendix A</span>
+                    </h3>
+                    <div class="bg-black p-3 rounded font-mono text-[11px] text-gray-300 border border-rh-border space-y-0.5 leading-relaxed">
+                        <p><span class="text-blue-400">FROM</span> registry.access.redhat.com/ubi9/python-312</p>
+                        <p><span class="text-blue-400">RUN</span> useradd -u 1001 appuser</p>
+                        <p><span class="text-blue-400">COPY</span> --chown=appuser:appuser app.py .</p>
+                        <p><span class="text-blue-400">USER</span> appuser</p>
+                        <p><span class="text-blue-400">CMD</span> ["python", "app.py"]</p>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Sem a linha <code class="text-purple-300">USER appuser</code>, a aplicação roda como <strong>root</strong> dentro do container por padrão — mesmo quando o processo não precisa de nenhum privilégio elevado.
+                    </p>
+                </div>
+
+                <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~/meu-app-python</span>
+                    </div>
+                    <div id="build-scan-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[230px] overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                🛠️ <strong>Boa prática:</strong> escaneie a imagem <em>antes</em> do push para o registry. Ferramentas como <code class="text-yellow-400">trivy</code>, <code class="text-yellow-400">grype</code> ou o scanner integrado do Quay identificam CVEs conhecidas em bibliotecas do sistema operacional e em dependências da aplicação (camada "Code" do slide anterior).
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 5: Pod Security ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider">Fase 2 de 3 • Deploy</div>
+                <h2 class="text-3xl font-black text-white">Pod Security: Non-Root, Read-Only FS e Pod Security Admission</h2>
+                <p class="text-gray-400 text-sm mt-1">Os mesmos pilares do Kernel do Módulo 2 (Namespaces, cgroups, SELinux, Seccomp) continuam por baixo — o que muda é <em>quem garante</em> que eles sejam usados corretamente.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-code border border-rh-border p-4 rounded-lg font-mono text-xs space-y-1 leading-relaxed">
+                    <p class="text-gray-500 text-[11px]"># securityContext no nível do Pod e do container:</p>
+                    <p><span class="text-blue-400">apiVersion:</span> v1</p>
+                    <p><span class="text-blue-400">kind:</span> Pod</p>
+                    <p><span class="text-blue-400">spec:</span></p>
+                    <p class="pl-3"><span class="text-blue-400">securityContext:</span></p>
+                    <p class="pl-6"><span class="text-purple-300">runAsNonRoot:</span> true</p>
+                    <p class="pl-6"><span class="text-purple-300">seccompProfile:</span> {type: RuntimeDefault}</p>
+                    <p class="pl-3"><span class="text-blue-400">containers:</span></p>
+                    <p class="pl-6">- name: app</p>
+                    <p class="pl-8"><span class="text-blue-400">securityContext:</span></p>
+                    <p class="pl-10"><span class="text-purple-300">readOnlyRootFilesystem:</span> true</p>
+                    <p class="pl-10"><span class="text-purple-300">allowPrivilegeEscalation:</span> false</p>
+                    <p class="pl-10"><span class="text-purple-300">capabilities:</span> {drop: [<span class="text-yellow-300">"ALL"</span>]}</p>
+                </div>
+
+                <div class="space-y-2.5">
+                    <h3 class="font-bold text-white text-sm">Pod Security Admission: 3 Níveis</h3>
+                    <div class="bg-red-950/20 border border-red-900/50 p-2.5 rounded text-xs">
+                        <strong class="text-red-400">Privileged</strong>
+                        <span class="text-gray-300"> — sem restrições. Reservado para componentes do próprio sistema (CNI, storage drivers).</span>
+                    </div>
+                    <div class="bg-amber-950/20 border border-amber-900/50 p-2.5 rounded text-xs">
+                        <strong class="text-amber-400">Baseline</strong>
+                        <span class="text-gray-300"> — bloqueia os escapes mais conhecidos (hostPID, hostNetwork, privileged: true), mas permite root.</span>
+                    </div>
+                    <div class="bg-green-950/20 border border-green-900/50 p-2.5 rounded text-xs">
+                        <strong class="text-green-400">Restricted</strong>
+                        <span class="text-gray-300"> — exige non-root, seccomp e capabilities dropadas. É o padrão que o OpenShift aplica por Project (Módulo 3).</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 6: Network Policies ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">Fase 2 de 3 • Deploy</div>
+                <h2 class="text-3xl font-black text-white">Network Policies: Zero Trust Também na Rede</h2>
+                <p class="text-gray-400 text-sm mt-1">Por padrão, todo Pod pode conversar com todo Pod — independente de Namespace.</p>
+            </div>
+
+            <div class="bg-rh-black border border-rh-border p-3 rounded-lg flex items-center justify-around text-xs font-mono text-center">
+                <div class="p-2 bg-red-950/30 rounded border border-red-800/60">
+                    <span class="text-gray-400 block text-[10px]">Sem NetworkPolicy</span>
+                    <strong class="text-red-400">Allow All ➔ Allow All</strong>
+                </div>
+                <span class="text-gray-500 font-bold">➔ vs ➔</span>
+                <div class="p-2 bg-green-950/40 rounded border border-green-800/60">
+                    <span class="text-gray-400 block text-[10px]">Com default-deny + allow explícito</span>
+                    <strong class="text-green-400">Deny All ➔ Só o permitido</strong>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-4 rounded-lg font-mono text-xs space-y-1 leading-relaxed">
+                <p class="text-gray-500 text-[11px]"># Política que nega TODO tráfego de entrada e saída em um namespace:</p>
+                <p><span class="text-blue-400">apiVersion:</span> networking.k8s.io/v1</p>
+                <p><span class="text-blue-400">kind:</span> NetworkPolicy</p>
+                <p><span class="text-blue-400">metadata:</span> {name: default-deny-all, namespace: producao}</p>
+                <p><span class="text-blue-400">spec:</span></p>
+                <p class="pl-3"><span class="text-purple-300">podSelector:</span> {}</p>
+                <p class="pl-3"><span class="text-purple-300">policyTypes:</span> [Ingress, Egress]</p>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                ✅ <strong>Checklist (NSA/CISA):</strong> use um plugin CNI que suporte a NetworkPolicy API → crie uma política <em>default-deny</em> por namespace → relaxe seletivamente com <code class="text-yellow-400">podSelector</code>/<code class="text-yellow-400">namespaceSelector</code> → combine com <code class="text-yellow-400">LimitRange</code>/<code class="text-yellow-400">ResourceQuota</code> para também limitar recursos.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 7: Secrets ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-red-400 font-bold uppercase tracking-wider">Fase 2 de 3 • Deploy</div>
+                <h2 class="text-3xl font-black text-white">Secrets: Por Padrão, NÃO São Criptografados</h2>
+                <p class="text-gray-400 text-sm mt-1">Um Kubernetes Secret é apenas texto em <strong class="text-white">base64</strong> — não é criptografia. Qualquer um com permissão de <code class="text-red-400">get secrets</code> pode ler o valor original.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~</span>
+                    </div>
+                    <div id="secrets-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[210px] overflow-y-auto"></div>
+                </div>
+
+                <div class="space-y-2.5">
+                    <h3 class="font-bold text-white text-sm">Como Proteger de Verdade</h3>
+                    <div class="bg-rh-card border border-rh-border p-2.5 rounded text-xs text-gray-300">
+                        <strong class="text-white">1. RBAC restritivo</strong> — só quem realmente precisa deve ter o verbo <code class="text-red-400">get</code>/<code class="text-red-400">list</code> no recurso <code class="text-red-400">secrets</code>.
+                    </div>
+                    <div class="bg-rh-card border border-rh-border p-2.5 rounded text-xs text-gray-300">
+                        <strong class="text-white">2. Encryption at rest</strong> — configure <code class="text-yellow-300">--encryption-provider-config</code> no kube-apiserver para criptografar Secrets dentro do etcd.
+                    </div>
+                    <div class="bg-rh-card border border-rh-border p-2.5 rounded text-xs text-gray-300">
+                        <strong class="text-white">3. KMS externo</strong> — evita manter a chave de criptografia no disco local do control plane.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 8: RBAC ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Fase 2 de 3 • Deploy</div>
+                <h2 class="text-3xl font-black text-white">RBAC: Least Privilege na Prática</h2>
+                <p class="text-gray-400 text-sm mt-1">Role/ClusterRole definem <em>o quê</em> pode ser feito. RoleBinding/ClusterRoleBinding definem <em>quem</em> pode fazer.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-code border border-rh-border p-4 rounded-lg font-mono text-xs space-y-1 leading-relaxed">
+                    <p><span class="text-blue-400">kind:</span> Role <span class="text-gray-500"># só neste namespace</span></p>
+                    <p><span class="text-blue-400">metadata:</span> {name: pod-reader, namespace: producao}</p>
+                    <p><span class="text-blue-400">rules:</span></p>
+                    <p class="pl-3">- apiGroups: [""]</p>
+                    <p class="pl-2">&nbsp;&nbsp;resources: [<span class="text-yellow-300">"pods"</span>]</p>
+                    <p class="pl-2">&nbsp;&nbsp;verbs: [<span class="text-green-400">"get","list","watch"</span>]</p>
+                    <p class="pt-1 text-gray-500">---</p>
+                    <p><span class="text-blue-400">kind:</span> RoleBinding</p>
+                    <p><span class="text-blue-400">subjects:</span> [{kind: User, name: lucas}]</p>
+                    <p><span class="text-blue-400">roleRef:</span> {kind: Role, name: pod-reader}</p>
+                </div>
+
+                <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~</span>
+                    </div>
+                    <div id="rbac-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[210px] overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                📌 <strong>Role</strong> = permissão em <em>um</em> namespace. <strong>ClusterRole</strong> = permissão em <em>todo</em> o cluster (ou reutilizável em vários namespaces via RoleBinding). Nunca use <code class="text-red-400">ClusterRoleBinding</code> quando um <code class="text-green-400">RoleBinding</code> resolveria — least privilege também vale para o escopo, não só para os verbos.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 9: Audit Logging & Threat Detection ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">Fase 3 de 3 • Run</div>
+                <h2 class="text-3xl font-black text-white">Audit Logging & Detecção de Ameaças</h2>
+                <p class="text-gray-400 text-sm mt-1">A auditoria nativa do Kubernetes vem <strong class="text-white">desabilitada por padrão</strong>. Sem ela, um incidente não deixa rastro.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2 text-xs">
+                    <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-gray-400">None</span><span class="text-gray-500">não loga nada</span></div>
+                    <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-blue-400">Metadata</span><span class="text-gray-400">só usuário, verbo, recurso — usar para Secrets</span></div>
+                    <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-amber-400">Request</span><span class="text-gray-400">+ corpo da requisição</span></div>
+                    <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-green-400">RequestResponse</span><span class="text-gray-400">+ resposta completa — máximo detalhe</span></div>
+                    <p class="text-[11px] text-gray-500 italic pt-1">⚠️ Logar Secrets em RequestResponse expõe o valor base64 no próprio log de auditoria.</p>
+                </div>
+
+                <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~</span>
+                    </div>
+                    <div id="audit-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[210px] overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                🔎 <strong>Sinais de alerta (NSA/CISA):</strong> requisições anônimas • picos súbitos de CPU/memória (cryptojacking) • Pods criados com privilégios de root • falhas repetidas de autorização • IP de origem de um Pod aparecendo como IP de criação de outro Pod.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 10: OpenShift já resolve boa parte disso ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Conectando com o Módulo 3</div>
+                <h2 class="text-3xl font-black text-white">No OpenShift, Boa Parte Disso Já Vem Pronta</h2>
+                <p class="text-gray-400 text-sm mt-1">Tudo que vimos até aqui é sobre <em>como corrigir</em> as inseguranças padrão do Kubernetes vanilla. O OpenShift parte de uma postura diferente.</p>
+            </div>
+
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-left text-xs border border-rh-border bg-rh-card rounded-lg overflow-hidden">
+                    <thead class="bg-rh-black text-white font-heading font-bold uppercase text-[11px] border-b border-rh-border">
+                        <tr>
+                            <th class="p-3">Controle</th>
+                            <th class="p-3 text-amber-400">Kubernetes Vanilla</th>
+                            <th class="p-3 text-rh-red">Red Hat OpenShift</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-rh-border text-gray-300 font-mono text-[11px]">
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Postura padrão de Pod</td>
+                            <td class="p-3 text-gray-400">Permite root; PSA "restricted" é opt-in</td>
+                            <td class="p-3 text-green-400 font-bold">SCC "restricted-v2" aplicada por padrão em cada Project</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Isolamento SELinux</td>
+                            <td class="p-3 text-gray-400">Depende da distro do nó</td>
+                            <td class="p-3 text-green-400 font-bold">Categorias MCS únicas por Project (Módulo 2)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">Auditoria</td>
+                            <td class="p-3 text-gray-400">Desabilitada, requer configuração manual</td>
+                            <td class="p-3 text-green-400 font-bold">Habilitada por padrão no control plane gerenciado</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-white font-sans">RBAC inicial</td>
+                            <td class="p-3 text-gray-400">Service account "default" com poucos privilégios, mas sem Projects/self-service</td>
+                            <td class="p-3 text-green-400 font-bold">Projects com RBAC + cotas de recurso prontos</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                💡 O OpenShift não inventa mecanismos novos — ele apenas assume, por padrão, as configurações mais seguras dos mesmos primitivos do Kubernetes que estudamos nesta aula.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 11: Ecossistema de Ferramentas ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">Ecossistema Prático</div>
+                <h2 class="text-3xl font-black text-white">Ferramentas que Todo Time Deveria Conhecer</h2>
+                <p class="text-gray-400 text-sm mt-1">Kubernetes não tem auditoria, scanning ou alerting completos nativamente — o ecossistema preenche essa lacuna.</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                    <div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold mb-2 text-xs">CIS</div>
+                    <h4 class="font-bold text-white text-xs">kube-bench</h4>
+                    <p class="text-[11px] text-gray-400 mt-1">Audita a configuração do cluster contra os benchmarks do CIS.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                    <div class="w-8 h-8 rounded bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-2 text-xs">IMG</div>
+                    <h4 class="font-bold text-white text-xs">Trivy / Grype</h4>
+                    <p class="text-[11px] text-gray-400 mt-1">Escaneiam imagens de container por CVEs conhecidas antes do deploy.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                    <div class="w-8 h-8 rounded bg-red-500/20 text-red-400 flex items-center justify-center font-bold mb-2 text-xs">RT</div>
+                    <h4 class="font-bold text-white text-xs">Falco</h4>
+                    <p class="text-[11px] text-gray-400 mt-1">Detecção de ameaças em runtime via eBPF/Seccomp — o "IDS" do container.</p>
+                </div>
+                <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                    <div class="w-8 h-8 rounded bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold mb-2 text-xs">POL</div>
+                    <h4 class="font-bold text-white text-xs">OPA / Kyverno</h4>
+                    <p class="text-[11px] text-gray-400 mt-1">Policy-as-code via admission controller: bloqueia manifests fora do padrão.</p>
+                </div>
+            </div>
+
+            <div class="bg-rh-card border border-rh-border p-3.5 rounded-lg space-y-2">
+                <h4 class="font-bold text-white text-xs uppercase font-mono text-rh-red">Observabilidade (a outra metade da segurança):</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] text-gray-300">
+                    <div class="p-2 bg-black rounded border border-rh-border">
+                        <strong>Prometheus + Grafana:</strong> métricas de CPU/memória/rede — uma baseline sólida ajuda a identificar desvios (ex: cryptojacking).
+                    </div>
+                    <div class="p-2 bg-black rounded border border-rh-border">
+                        <strong>Service Mesh (ex: Istio/Linkerd):</strong> criptografia mTLS automática entre serviços e visibilidade completa do tráfego interno.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 12: Matriz de Defesa em Profundidade + Fontes ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-4">
+            <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Síntese do Módulo 4</div>
+            <h2 class="text-3xl md:text-4xl font-black text-white">A Matriz de Defesa em Profundidade</h2>
+
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-left text-xs border border-rh-border bg-rh-card rounded-lg overflow-hidden">
+                    <thead class="bg-rh-black text-white font-heading font-bold uppercase text-[11px] border-b border-rh-border">
+                        <tr>
+                            <th class="p-2.5">Fase</th>
+                            <th class="p-2.5">Risco Principal</th>
+                            <th class="p-2.5">Controle</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-rh-border text-gray-300 font-mono text-[11px]">
+                        <tr><td class="p-2.5 font-bold text-white font-sans">Build</td><td class="p-2.5 font-sans">Imagem root / com CVEs</td><td class="p-2.5 text-purple-400">Non-root + scanning (Trivy)</td></tr>
+                        <tr><td class="p-2.5 font-bold text-white font-sans">Deploy</td><td class="p-2.5 font-sans">Pod sem restrição, rede aberta, Secret exposto</td><td class="p-2.5 text-amber-400">Pod Security Admission + Network Policy + RBAC</td></tr>
+                        <tr><td class="p-2.5 font-bold text-white font-sans">Run</td><td class="p-2.5 font-sans">Comprometimento sem detecção</td><td class="p-2.5 text-green-400">Audit Logging + Falco + Prometheus</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3.5 rounded-lg text-xs space-y-2 w-full">
+                <span class="text-white font-bold block">📚 Fontes desta aula (disponíveis para download no repositório):</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+                    <a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="flex items-center justify-between bg-black p-2 rounded border border-rh-border hover:border-rh-red transition group">
+                        <span class="text-gray-300 group-hover:text-white">NSA/CISA — Kubernetes Hardening Guidance v1.2</span>
+                        <span class="text-rh-red font-bold shrink-0 ml-2">↓ PDF</span>
+                    </a>
+                    <a href="files/kubernetes-security-and-observability-a-holistic-approach-to-securing-containers-and-cloud-native-applications-1nbsped-1098107101-9781098107109_compress.pdf" target="_blank" class="flex items-center justify-between bg-black p-2 rounded border border-rh-border hover:border-rh-red transition group">
+                        <span class="text-gray-300 group-hover:text-white">Creane &amp; Gupta — Kubernetes Security and Observability</span>
+                        <span class="text-rh-red font-bold shrink-0 ml-2">↓ PDF</span>
+                    </a>
+                    <a href="files/656477678-Kubernetes-security.pdf" target="_blank" class="flex items-center justify-between bg-black p-2 rounded border border-rh-border hover:border-rh-red transition group">
+                        <span class="text-gray-300 group-hover:text-white">Piskunov — Kubernetes Security: Zero to Hero</span>
+                        <span class="text-rh-red font-bold shrink-0 ml-2">↓ PDF</span>
+                    </a>
+                    <a href="files/ea1ce4f7-13d6-439d-bdf4-c804284d32ae.pdf" target="_blank" class="flex items-center justify-between bg-black p-2 rounded border border-rh-border hover:border-rh-red transition group">
+                        <span class="text-gray-300 group-hover:text-white">Red Hat — A Layered Approach to Container &amp; K8s Security</span>
+                        <span class="text-rh-red font-bold shrink-0 ml-2">↓ PDF</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="pt-1 flex items-center space-x-3">
+                <button onclick="goToSlide(0)" class="bg-rh-red hover:bg-rh-darkred text-white text-xs font-bold px-4 py-2 rounded transition shadow-lg">
+                    Reiniciar Apresentação ↺
+                </button>
+                <a href="index.html" class="bg-rh-card hover:bg-rh-border text-gray-200 border border-rh-border text-xs font-bold px-4 py-2 rounded transition inline-flex items-center space-x-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    <span>Voltar ao Índice</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE FINAL: Encerramento Oficial Red Hat ==================== -->
+        <section class="slide w-full h-full flex-col">
+            <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
+                <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16 space-x-6 md:space-x-10" style="padding-bottom:15%;">
+                    <div class="flex-1 space-y-3">
+                        <h1 class="italic font-heading font-black text-white text-4xl md:text-6xl">Thank you!</h1>
+                        <p class="italic text-white/90 text-sm md:text-base max-w-md leading-relaxed">Você completou a trilha completa: <code class="not-italic font-mono bg-black/20 px-1 rounded">podman</code> → Kernel Linux → OpenShift → Segurança. Continue praticando <code class="not-italic font-mono bg-black/20 px-1 rounded">kubectl auth can-i</code> e <code class="not-italic font-mono bg-black/20 px-1 rounded">trivy image</code>.</p>
+                    </div>
+                    <div class="space-y-3 text-white/90 text-[11px] md:text-xs italic shrink-0">
+                        <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">in</span><span>linkedin.com/company/red-hat</span></div>
+                        <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">▶</span><span>youtube.com/user/RedHatVideos</span></div>
+                        <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">f</span><span>facebook.com/redhatinc</span></div>
+                    </div>
+                    <div class="hidden sm:flex flex-col items-center space-y-1.5 shrink-0">
+                        <div class="bg-white p-1.5 rounded-lg shadow-lg">
+                            <img src="assets/ebooks.png" alt="QR Code para e-books gratuitos da Red Hat Developers" class="w-16 h-16 md:w-20 md:h-20 block rounded">
+                        </div>
+                        <span class="not-italic text-white/80 text-[9px] md:text-[10px] text-center leading-tight max-w-[100px]">E-books gratuitos<br>Red Hat Developers</span>
+                    </div>
+                </div>
+                <div class="absolute left-10 md:left-20 flex items-center space-x-3" style="bottom:19%;">
+                    <button onclick="goToSlide(0)" class="bg-black/25 hover:bg-black/40 text-white text-xs font-bold px-4 py-2 rounded transition">
+                        Reiniciar Apresentação ↺
+                    </button>
+                    <a href="index.html" class="bg-black/25 hover:bg-black/40 text-white text-xs font-bold px-4 py-2 rounded transition inline-flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        <span>Voltar ao Índice</span>
+                    </a>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full" style="height:15%; background:#EBEBEB;">
+                    <div class="absolute bottom-0 left-[3%] w-[3px]" style="height:70%; background:#BD0000;"></div>
+                    <div class="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                        <img src="assets/rh-hat-icon.png" alt="" class="h-5 md:h-7 w-auto">
+                        <span class="font-heading font-black text-black text-base md:text-xl tracking-tight">Red Hat</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Presentation Controls Footer -->
+    <footer class="h-14 border-t border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
+        <div class="flex items-center space-x-2">
+            <button onclick="prevSlide()" class="p-2 rounded bg-rh-card hover:bg-rh-border text-gray-200 transition border border-rh-border" title="Anterior">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="nextSlide()" class="p-2 rounded bg-rh-red hover:bg-rh-darkred text-white transition shadow" title="Próximo">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <span class="text-xs text-gray-500 font-mono hidden md:inline ml-2">Navegue com [←] e [→]</span>
+        </div>
+
+        <div id="dots-container" class="flex space-x-1.5 overflow-x-auto max-w-xs md:max-w-md py-1"></div>
+
+        <div class="text-[11px] font-mono text-gray-400">
+            Red Hat Training Platform
+        </div>
+    </footer>
+
+    <!-- Modal: Camadas de Defesa (Build -> Deploy -> Run) -->
+    <div id="defense-map-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-rh-black border border-rh-border w-full max-w-3xl rounded-xl p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-rh-border pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 bg-rh-red rounded-full"></span>
+                    <span>Camadas de Defesa: Build → Deploy → Run</span>
+                </h3>
+                <button onclick="toggleModal('defense-map-modal')" class="text-gray-400 hover:text-white text-lg font-mono">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs font-mono">
+                <div class="p-3 bg-purple-950/20 border border-purple-900/50 rounded">
+                    <span class="text-purple-400 font-bold block mb-1">BUILD (Development)</span>
+                    <p class="text-gray-300">Container images ➔ Private registry ➔ Build management ➔ CI/CD pipeline</p>
+                </div>
+                <div class="text-center text-gray-500">▼</div>
+                <div class="p-3 bg-amber-950/20 border border-amber-900/50 rounded">
+                    <span class="text-amber-400 font-bold block mb-1">DEPLOY (Kubernetes Platform Life-Cycle)</span>
+                    <p class="text-gray-300">Identity &amp; access management ➔ Platform data ➔ Deployment policies</p>
+                </div>
+                <div class="text-center text-gray-500">▼</div>
+                <div class="p-3 bg-green-950/20 border border-green-900/50 rounded">
+                    <span class="text-green-400 font-bold block mb-1">RUN (Production)</span>
+                    <p class="text-gray-300">Container isolation ➔ Network isolation ➔ Application access &amp; data ➔ Observability</p>
+                </div>
+            </div>
+            <p class="text-[10px] text-gray-500 italic">Fonte: adaptado de "A layered approach to container and Kubernetes security" (Red Hat).</p>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="toggleModal('defense-map-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Notas do Apresentador -->
+    <div id="notes-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-rh-black border border-rh-border w-full max-w-2xl max-h-[85vh] rounded-xl p-6 space-y-4 shadow-2xl flex flex-col">
+            <div class="flex items-center justify-between border-b border-rh-border pb-3 shrink-0">
+                <h3 class="text-base font-bold text-white flex items-center space-x-2 pr-4">
+                    <svg class="w-4 h-4 text-rh-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span id="notes-modal-title">Notas do Apresentador</span>
+                </h3>
+                <button onclick="toggleModal('notes-modal')" class="text-gray-400 hover:text-white text-lg font-mono shrink-0">✕</button>
+            </div>
+            <div id="notes-modal-body" class="space-y-3 text-xs text-gray-300 leading-relaxed overflow-y-auto custom-scroll pr-1">
+                <!-- injetado via JS -->
+            </div>
+            <div class="flex justify-end pt-2 shrink-0">
+                <button onclick="toggleModal('notes-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Engine JS -->
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').innerText = totalSlides.toString().padStart(2, '0');
+
+        function updateSlideUI() {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('active', idx === currentSlide);
+            });
+
+            document.getElementById('slide-number').innerText = (currentSlide + 1).toString().padStart(2, '0');
+
+            const dotsContainer = document.getElementById('dots-container');
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('button');
+                dot.className = `w-2 h-2 md:w-3 md:h-1.5 rounded transition ${i === currentSlide ? 'bg-rh-red w-4 md:w-6' : 'bg-rh-border hover:bg-gray-500'}`;
+                dot.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(dot);
+            }
+
+            // Slide 4 (Build-Time Security): build + scan animado
+            if (currentSlide === 4) { startBuildScanAnimation(); } else { stopBuildScanAnimation(); }
+            // Slide 7 (Secrets): demonstração de decode base64
+            if (currentSlide === 7) { startSecretsAnimation(); } else { stopSecretsAnimation(); }
+            // Slide 8 (RBAC): criação de role/rolebinding + auth can-i
+            if (currentSlide === 8) { startRbacAnimation(); } else { stopRbacAnimation(); }
+            // Slide 9 (Audit Logging): tail do audit log + alerta
+            if (currentSlide === 9) { startAuditAnimation(); } else { stopAuditAnimation(); }
+        }
+
+        // ==================== Motor genérico de terminal animado ====================
+        function createTerminalAnimator(elementId) {
+            let gen = 0;
+            let i = 0;
+
+            function run(script) {
+                gen++;
+                const myGen = gen;
+                const el = document.getElementById(elementId);
+                if (!el) return;
+                el.innerHTML = '';
+                i = 0;
+
+                function scrollDown() {
+                    el.scrollTop = el.scrollHeight;
+                }
+
+                function makeLine() {
+                    const line = document.createElement('div');
+                    line.className = 'flex flex-wrap items-baseline';
+                    return line;
+                }
+
+                function typeLine(step, done) {
+                    const line = makeLine();
+                    const promptSpan = document.createElement('span');
+                    promptSpan.className = 'text-green-400 font-bold pr-2 shrink-0';
+                    promptSpan.textContent = step.prompt;
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'text-yellow-300 break-all';
+                    const cursor = document.createElement('span');
+                    cursor.className = 'terminal-cursor';
+                    line.appendChild(promptSpan);
+                    line.appendChild(textSpan);
+                    line.appendChild(cursor);
+                    el.appendChild(line);
+
+                    let charIdx = 0;
+                    (function typeChar() {
+                        if (gen !== myGen) return;
+                        if (charIdx <= step.text.length) {
+                            textSpan.textContent = step.text.slice(0, charIdx);
+                            charIdx++;
+                            scrollDown();
+                            setTimeout(typeChar, 20 + Math.random() * 32);
+                        } else {
+                            if (step.idleCursor) {
+                                setTimeout(() => {
+                                    if (gen !== myGen) return;
+                                    el.innerHTML = '';
+                                    i = 0;
+                                    runStep();
+                                }, 2600);
+                                return;
+                            }
+                            cursor.remove();
+                            setTimeout(done, 260);
+                        }
+                    })();
+                }
+
+                function printLine(step, done) {
+                    const line = makeLine();
+                    line.className += ' whitespace-pre-wrap break-all ' + (step.color || 'text-gray-400');
+                    line.textContent = step.text;
+                    el.appendChild(line);
+                    scrollDown();
+                    setTimeout(done, 110);
+                }
+
+                function runStep() {
+                    if (gen !== myGen) return;
+                    if (i >= script.length) return;
+                    const step = script[i];
+                    i++;
+                    if (step.type) {
+                        typeLine(step, runStep);
+                    } else {
+                        printLine(step, runStep);
+                    }
+                }
+
+                runStep();
+            }
+
+            function stop() {
+                gen++;
+                const el = document.getElementById(elementId);
+                if (el) el.innerHTML = '';
+            }
+
+            return { run, stop };
+        }
+
+        // ---- Slide 4: Build + Scan ----
+        const buildScanAnimator = createTerminalAnimator('build-scan-terminal');
+        function startBuildScanAnimation() {
+            buildScanAnimator.run([
+                { prompt: '$', text: 'podman build -t localhost/meu-app-python:v2 .', type: true },
+                { text: 'STEP 1/4: FROM registry.access.redhat.com/ubi9/python-312', color: 'text-blue-300' },
+                { text: 'STEP 4/4: USER appuser', color: 'text-blue-300' },
+                { text: 'Successfully tagged localhost/meu-app-python:v2', color: 'text-green-400' },
+                { prompt: '$', text: 'trivy image localhost/meu-app-python:v2', type: true },
+                { text: 'Total: 2 (HIGH: 1, CRITICAL: 1)', color: 'text-red-400' },
+                { text: 'CVE-2024-XXXX  openssl  CRITICAL  fixed in 3.0.9', color: 'text-red-300' },
+                { prompt: '$', text: 'podman build --pull=always -t localhost/meu-app-python:v3 .', type: true },
+                { text: 'Successfully tagged localhost/meu-app-python:v3', color: 'text-green-400' },
+                { prompt: '$', text: 'trivy image localhost/meu-app-python:v3', type: true },
+                { text: 'Total: 0 (HIGH: 0, CRITICAL: 0)', color: 'text-green-400' },
+                { text: '✓ nenhuma vulnerabilidade crítica encontrada', color: 'text-green-400' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopBuildScanAnimation() { buildScanAnimator.stop(); }
+
+        // ---- Slide 7: Secrets ----
+        const secretsAnimator = createTerminalAnimator('secrets-terminal');
+        function startSecretsAnimation() {
+            secretsAnimator.run([
+                { prompt: '$', text: "kubectl get secret db-password -o jsonpath='{.data.password}'", type: true },
+                { text: 'c3VwZXJzZWNyZXRwYXNzMTIz', color: 'text-gray-400' },
+                { prompt: '$', text: 'echo c3VwZXJzZWNyZXRwYXNzMTIz | base64 -d', type: true },
+                { text: 'supersecretpass123', color: 'text-red-400' },
+                { text: '# base64 não é criptografia — qualquer "get secrets" lê isso', color: 'text-gray-500' },
+                { prompt: '$', text: 'kubectl get secrets --all-namespaces -o json | kubectl replace -f -', type: true },
+                { text: '# reencripta todos os Secrets após ativar o encryption-provider-config', color: 'text-green-400' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopSecretsAnimation() { secretsAnimator.stop(); }
+
+        // ---- Slide 8: RBAC ----
+        const rbacAnimator = createTerminalAnimator('rbac-terminal');
+        function startRbacAnimation() {
+            rbacAnimator.run([
+                { prompt: '$', text: 'kubectl create role pod-reader --verb=get,list,watch --resource=pods -n producao', type: true },
+                { text: 'role.rbac.authorization.k8s.io/pod-reader created', color: 'text-green-400' },
+                { prompt: '$', text: 'kubectl create rolebinding read-pods --role=pod-reader --user=lucas -n producao', type: true },
+                { text: 'rolebinding.rbac.authorization.k8s.io/read-pods created', color: 'text-green-400' },
+                { prompt: '$', text: 'kubectl auth can-i get pods --as=lucas -n producao', type: true },
+                { text: 'yes', color: 'text-green-400' },
+                { prompt: '$', text: 'kubectl auth can-i delete pods --as=lucas -n producao', type: true },
+                { text: 'no', color: 'text-red-400' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopRbacAnimation() { rbacAnimator.stop(); }
+
+        // ---- Slide 9: Audit Logging ----
+        const auditAnimator = createTerminalAnimator('audit-terminal');
+        function startAuditAnimation() {
+            auditAnimator.run([
+                { prompt: '$', text: 'tail -f /var/log/kubernetes/audit.log', type: true },
+                { text: '{"level":"Metadata","verb":"get","user":"system:anonymous","resource":"secrets"}', color: 'text-red-300' },
+                { text: '{"level":"RequestResponse","verb":"create","user":"lucas","resource":"pods"}', color: 'text-gray-400' },
+                { prompt: '$', text: 'kubectl logs -f app-suspeito', type: true },
+                { text: '[WARN] outbound connection to unknown host: 185.220.xx.xx', color: 'text-amber-300' },
+                { text: '[ALERT] CPU usage spike: 480% (possível cryptojacking)', color: 'text-red-400' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ]);
+        }
+        function stopAuditAnimation() { auditAnimator.stop(); }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlideUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlideUI();
+            }
+        }
+
+        function goToSlide(n) {
+            if (n >= 0 && n < totalSlides) {
+                currentSlide = n;
+                updateSlideUI();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullScreen();
+            }
+        });
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        // ==================== Notas do Apresentador (por slide) ====================
+        const presenterNotes = [
+            // 0 - Capa Oficial Red Hat
+            {
+                title: 'Slide 0 · Abertura do Módulo 4',
+                body: `
+                    <p>Este é o 4º e último módulo da trilha. Recapitule rapidamente o caminho percorrido: "no Módulo 1 aprendemos o Podman, no Módulo 2 o Kernel, no Módulo 3 o Kubernetes/OpenShift. Hoje vamos ver por que nada disso é seguro <em>por padrão</em> e o que fazer sobre isso".</p>
+                    <p>Diferente dos módulos anteriores (mais "arquiteturais"), este módulo é fortemente baseado em <strong>guias oficiais de hardening</strong> — em especial o guia conjunto da NSA (Agência de Segurança Nacional dos EUA) e da CISA (Cybersecurity and Infrastructure Security Agency), referência de mercado citada em certificações como o CKS (Certified Kubernetes Security Specialist).</p>
+                `
+            },
+            // 1 - Capa / Agenda
+            {
+                title: 'Slide 1 · As 4 Cs como mapa da aula',
+                body: `
+                    <p>O framework "4 Cs" (Cloud, Cluster, Container, Code) aparece no e-book de Ivan Piskunov e é amplamente usado na indústria de segurança cloud native para organizar onde cada controle de segurança se aplica. Vale desenhar rapidamente no quadro: são camadas concêntricas — uma falha na camada mais interna (Code) pode ser contida pelas camadas externas, mas uma falha grave na camada mais externa (Cloud) compromete tudo.</p>
+                    <p>Reforce a frase de abertura: "Kubernetes não é seguro por padrão". Isso é literal — RBAC vem habilitado mas com contas de serviço padrão pouco restritivas, Network Policies não existem até serem criadas, e Secrets são apenas base64.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="files/656477678-Kubernetes-security.pdf" target="_blank" class="text-blue-400 hover:underline">Piskunov, "Kubernetes Security: Zero to Hero" (PDF, seção 2.1 — The 4C's)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 2 - Modelo de Ameaças
+            {
+                title: 'Slide 2 · O modelo de ameaças oficial da NSA/CISA',
+                body: `
+                    <p>Este slide resume literalmente a seção "Threat model" do guia da NSA/CISA. Vale ler em voz alta a frase de abertura do documento: motivações comuns incluem roubo de dados, mas também <strong>roubo de poder computacional</strong> — cryptojacking é hoje uma das motivações mais comuns para comprometer clusters Kubernetes expostos.</p>
+                    <p>Sobre <strong>Insider Threat</strong>: é importante deixar claro que Kubernetes não possui controles nativos de "two-person integrity" — ou seja, pelo menos uma conta administrativa sempre terá controle total do cluster. RBAC reduz o risco, mas não elimina a necessidade de confiar em administradores.</p>
+                    <p>Pergunta para a turma: "qual das 3 fontes vocês acham mais fácil de mitigar tecnicamente, e qual depende mais de processo/confiança organizacional?" — é uma boa forma de conectar segurança técnica com governança.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="text-blue-400 hover:underline">NSA/CISA, "Kubernetes Hardening Guidance" v1.2 (PDF, seção "Threat model", p.6-8)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 3 - As 4 Cs
+            {
+                title: 'Slide 3 · Aprofundando o diagrama de camadas',
+                body: `
+                    <p>Sugestão de dinâmica: peça para a turma classificar, em voz alta, em qual "C" cada incidente de segurança real se encaixaria. Exemplos práticos: "uma dependência NPM maliciosa" → Code. "Uma VM do provedor de nuvem mal configurada com IAM aberto" → Cloud. "Um Pod rodando como root" → Container. "RBAC permitindo qualquer usuário criar Pods privilegiados" → Cluster.</p>
+                    <p>Ponto pedagógico importante: esta aula foca principalmente na camada <strong>Cluster</strong> (RBAC, Network Policies, Secrets, Audit Logging) porque é a camada mais "Kubernetes-específica" — a camada Container já foi coberta no Módulo 1 (build/scanning) e a camada Cloud está fora do escopo desta disciplina.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="files/656477678-Kubernetes-security.pdf" target="_blank" class="text-blue-400 hover:underline">Piskunov, "Kubernetes Security" (PDF, capítulo 2 — Concept of security)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 4 - Build-Time Security
+            {
+                title: 'Slide 4 · Build-time: fechando o gancho do Módulo 1',
+                body: `
+                    <p>Este slide retoma diretamente o slide de Build do Módulo 1 (Containerfile) — mas agora adicionando o passo que faltava naquela aula: rodar a aplicação como um usuário não-root explícito, em vez de aceitar o comportamento padrão de rodar como root.</p>
+                    <p>O terminal à direita é animado e ilustra um fluxo realista: build → scan encontra CVE crítica em uma dependência do sistema (ex: OpenSSL) → rebuild com imagem base atualizada → scan limpo. Esse é exatamente o loop de "shift left" (segurança movida para o início do pipeline) mencionado no livro da O'Reilly.</p>
+                    <p>Vale mencionar que <code class="text-purple-400">trivy</code> e <code class="text-purple-400">grype</code> são gratuitos e open source — ótimas sugestões de "primeira ferramenta de segurança" para os alunos instalarem localmente.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="text-blue-400 hover:underline">NSA/CISA Hardening Guidance (PDF, Appendix A — Example Dockerfile for non-root application)</a></li>
+                            <li><a href="files/kubernetes-security-and-observability-a-holistic-approach-to-securing-containers-and-cloud-native-applications-1nbsped-1098107101-9781098107109_compress.pdf" target="_blank" class="text-blue-400 hover:underline">Creane &amp; Gupta, "Kubernetes Security and Observability" (PDF, capítulo 3 — Image Building and Scanning)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 5 - Pod Security
+            {
+                title: 'Slide 5 · Pod Security Admission: formalizando o que já vimos no Módulo 2',
+                body: `
+                    <p>Reforce que <code class="text-purple-300">readOnlyRootFilesystem</code>, <code class="text-purple-300">runAsNonRoot</code> e <code class="text-purple-300">capabilities.drop</code> não são conceitos novos de segurança — são exatamente os mesmos mecanismos de Kernel (Namespaces, cgroups, SELinux, Seccomp, Capabilities) estudados a fundo no Módulo 2, apenas expostos como campos declarativos de YAML.</p>
+                    <p>O Pod Security Admission (PSA) é a evolução das antigas <em>Pod Security Policies</em> (PSPs), removidas do Kubernetes na versão 1.25. É importante que a turma saiba que, se encontrarem material antigo sobre PSPs online, ele está desatualizado.</p>
+                    <p>Conecte com o próximo slide de OpenShift (slide 10): o nível <strong>Restricted</strong> do PSA é essencialmente o que a SCC <code class="text-green-400">restricted-v2</code> do OpenShift já aplica automaticamente.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://kubernetes.io/docs/concepts/security/pod-security-admission/" target="_blank" class="text-blue-400 hover:underline">Kubernetes Docs: Pod Security Admission</a></li>
+                            <li><a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="text-blue-400 hover:underline">NSA/CISA Hardening Guidance (PDF, seção "Pod security enforcement")</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 6 - Network Policies
+            {
+                title: 'Slide 6 · Zero trust na rede',
+                body: `
+                    <p>Ponto que costuma surpreender a turma: mesmo Pods em <strong>Namespaces diferentes</strong> podem se comunicar livremente por padrão, a menos que uma NetworkPolicy diga o contrário. Namespace é uma fronteira de <em>nomenclatura e RBAC</em>, não uma fronteira de rede automática.</p>
+                    <p>Explique <code class="text-purple-300">podSelector: {}</code> (seletor vazio) na política de exemplo: isso significa "aplica-se a TODOS os Pods do namespace" — combinado com nenhuma regra de <code class="text-purple-300">ingress</code>/<code class="text-purple-300">egress</code>, o resultado é negar todo o tráfego.</p>
+                    <p>Requisito técnico importante: NetworkPolicy só funciona se o plugin CNI do cluster (Calico, Cilium, etc.) implementar a NetworkPolicy API. O Flannel puro, por exemplo, historicamente não suportava — vale mencionar se a turma for usar um cluster local tipo kind/minikube para os laboratórios.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="text-blue-400 hover:underline">NSA/CISA Hardening Guidance (PDF, seção "Network policies" + Appendix F)</a></li>
+                            <li><a href="https://kubernetes.io/docs/concepts/services-networking/network-policies/" target="_blank" class="text-blue-400 hover:underline">Kubernetes Docs: Network Policies</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 7 - Secrets
+            {
+                title: 'Slide 7 · O "susto" do base64',
+                body: `
+                    <p>Este é, historicamente, o momento de maior impacto da aula: mostrar ao vivo (ou via animação) que <code class="text-red-400">echo &lt;valor&gt; | base64 -d</code> revela a senha em texto puro é sempre surpreendente para quem nunca leu a documentação a fundo — a maioria assume que "Secret" implica criptografia.</p>
+                    <p>Deixe claro o motivo técnico: por padrão, os Secrets são armazenados no <code class="text-white">etcd</code> apenas com uma codificação base64 (não é criptografia, é só uma representação binária-para-texto). Qualquer processo com acesso de leitura ao etcd, ou qualquer usuário com RBAC permitindo <code class="text-red-400">get secrets</code> via API, consegue o valor original com um decode trivial.</p>
+                    <p>O comando <code class="text-green-400">kubectl get secrets --all-namespaces -o json | kubectl replace -f -</code> mostrado na animação é real e vem diretamente do guia da NSA — é o comando usado para "reescrever" todos os Secrets existentes depois de habilitar a criptografia em repouso, forçando-os a passar pelo novo provider e ficarem de fato criptografados no etcd.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="text-blue-400 hover:underline">NSA/CISA Hardening Guidance (PDF, seção "Secrets" + Appendix I/J)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 8 - RBAC
+            {
+                title: 'Slide 8 · RBAC: o "quem pode o quê" do cluster',
+                body: `
+                    <p>Use o diagrama mental: <strong>Role/ClusterRole</strong> = substantivo + verbo (ex: "pods" + "get"), sem saber quem vai usar. <strong>RoleBinding/ClusterRoleBinding</strong> = a "cola" que conecta essa permissão a uma pessoa, grupo ou service account específica.</p>
+                    <p>Detalhe técnico importante para citar: depois que um RoleBinding é criado, o Role ou ClusterRole referenciado se torna <strong>imutável</strong> — para trocar a role associada a um binding, é preciso deletar e recriar o binding, não apenas editá-lo.</p>
+                    <p>O comando <code class="text-yellow-300">kubectl auth can-i ... --as=usuario</code> mostrado na animação é extremamente útil no dia a dia: permite testar permissões de outro usuário/service account sem precisar de fato se autenticar como ele — ótimo para debugar "por que meu deploy está falhando com Forbidden".</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="text-blue-400 hover:underline">NSA/CISA Hardening Guidance (PDF, seção "Role-based access control" + Appendix K/L)</a></li>
+                            <li><a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/" target="_blank" class="text-blue-400 hover:underline">Kubernetes Docs: RBAC</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 9 - Audit Logging
+            {
+                title: 'Slide 9 · Sem log, sem investigação possível',
+                body: `
+                    <p>Frase de efeito para abrir: "a melhor solução de logging do mundo é inútil se ninguém olhar os dados" — é uma citação quase literal do guia da NSA/CISA e vale para reforçar que <strong>coletar</strong> logs é só metade do problema; <strong>monitorar</strong> ativamente é a outra metade (slide 11 mostra as ferramentas para isso).</p>
+                    <p>Explique por que o nível <code class="text-blue-400">Metadata</code> é recomendado especificamente para o recurso <code class="text-blue-400">secrets</code>: registrar em nível <code class="text-green-400">RequestResponse</code> capturaria o valor base64 do Secret diretamente no arquivo de log de auditoria — um vazamento de segurança causado pela própria ferramenta de segurança.</p>
+                    <p>A tabela de "sinais de alerta" no rodapé do slide é extraída quase literalmente do guia da NSA — é um ótimo material de referência rápida para os alunos que forem atuar como SRE/DevOps.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="text-blue-400 hover:underline">NSA/CISA Hardening Guidance (PDF, seção "Audit Logging and Threat Detection", Table IV)</a></li>
+                            <li><a href="files/kubernetes-security-and-observability-a-holistic-approach-to-securing-containers-and-cloud-native-applications-1nbsped-1098107101-9781098107109_compress.pdf" target="_blank" class="text-blue-400 hover:underline">Creane &amp; Gupta, "Kubernetes Security and Observability" (PDF, capítulo 6 — Observability and Security)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 10 - OpenShift já resolve boa parte disso
+            {
+                title: 'Slide 10 · Fechando o ciclo com o Módulo 3',
+                body: `
+                    <p>Este slide é o "aha moment" do módulo: mostra que tudo que a turma aprendeu nos slides 5 a 9 (o trabalho manual de proteger um cluster Kubernetes vanilla) já vem parcialmente resolvido de fábrica no OpenShift, retomando diretamente o que foi visto no Módulo 3 sobre SCCs e categorias MCS automáticas.</p>
+                    <p>Deixe claro que isso <strong>não</strong> significa que administradores de OpenShift podem ignorar RBAC, Network Policies ou Secrets — apenas que o ponto de partida já é mais seguro. Boas práticas de least privilege continuam sendo responsabilidade de quem opera o cluster.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.openshift.com/container-platform/latest/authentication/managing-security-context-constraints.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: Managing Security Context Constraints</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 11 - Ecossistema de Ferramentas
+            {
+                title: 'Slide 11 · O ecossistema que preenche as lacunas nativas',
+                body: `
+                    <p>Reforce que nenhuma dessas ferramentas é exigência do Kubernetes — são todas add-ons de terceiros (majoritariamente open source e mantidos por fundações como a CNCF) porque o Kubernetes core deliberadamente não inclui scanning, alerting ou runtime detection nativamente.</p>
+                    <p>Sobre o <strong>Falco</strong>: vale a conexão direta com o Módulo 2 — ele funciona interceptando chamadas de sistema via eBPF/Seccomp, exatamente o mesmo mecanismo do Kernel estudado naquele módulo, só que usado para alertar em tempo real em vez de apenas bloquear.</p>
+                    <p>Sobre <strong>OPA/Kyverno</strong>: são "admission controllers" customizados — o mesmo conceito de admission controller mencionado no guia da NSA para bloquear imagens não assinadas digitalmente, generalizado para qualquer política (ex: "todo Deployment deve ter resource limits definidos").</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://falco.org/" target="_blank" class="text-blue-400 hover:underline">Projeto Falco (CNCF)</a></li>
+                            <li><a href="https://www.openpolicyagent.org/" target="_blank" class="text-blue-400 hover:underline">Open Policy Agent (OPA)</a></li>
+                            <li><a href="files/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.pdf" target="_blank" class="text-blue-400 hover:underline">NSA/CISA Hardening Guidance (PDF, seção "Tools")</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 12 - Matriz + Fontes
+            {
+                title: 'Slide 12 · Fechando a trilha inteira, não só o módulo',
+                body: `
+                    <p>Esta tabela resume as 3 fases (Build/Deploy/Run) que amarram este módulo inteiro. Sugestão de dinâmica: peça para os alunos, em duplas, tentarem preencher de memória a coluna "Controle" olhando apenas para "Risco Principal" — bom exercício de fixação antes de qualquer avaliação.</p>
+                    <p>Os 4 links de download no rodapé apontam para os PDFs completos usados como base desta aula, hospedados no mesmo repositório GitHub Pages desta apresentação (pasta <code class="text-white">files/</code>). Incentive os alunos a baixarem pelo menos o guia da NSA/CISA — é gratuito, oficial, e citado como leitura recomendada para quem pretende estudar para a certificação CKS.</p>
+                    <p>Como esta é a última apresentação da trilha de 4 módulos, é um bom momento para revisão geral: "o quê" (Podman, Módulo 1), "como" (Kernel, Módulo 2), "em escala" (Kubernetes/OpenShift, Módulo 3), "com que cuidados" (Segurança, Módulo 4).</p>
+                `
+            },
+            // 13 - Encerramento
+            {
+                title: 'Slide 13 · Encerramento da trilha completa',
+                body: `
+                    <p>Este é o encerramento não apenas do Módulo 4, mas da trilha completa de 4 aulas. Vale um fechamento mais solene: peça para cada aluno resumir em uma frase "o que é segurança em Kubernetes" usando o vocabulário aprendido (RBAC, Network Policy, Secrets, Pod Security) — ótimo para avaliar fixação de toda a disciplina.</p>
+                    <p>Sugestão de tarefa final: instalar um cluster local (kind ou minikube), aplicar as políticas RBAC e NetworkPolicy mostradas nesta aula, e rodar <code class="text-white">trivy image</code> em uma imagem própria construída no Módulo 1.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://kubernetes.io/docs/tasks/tools/#kind" target="_blank" class="text-blue-400 hover:underline">Kubernetes Docs: instalando kind</a></li>
+                            <li><a href="https://www.cncf.io/training/certification/cks/" target="_blank" class="text-blue-400 hover:underline">CNCF: Certified Kubernetes Security Specialist (CKS)</a></li>
+                        </ul>
+                    </div>
+                `
+            }
+        ];
+
+        function showPresenterNotes() {
+            const note = presenterNotes[currentSlide] || {
+                title: 'Notas do Apresentador',
+                body: '<p>Sem notas adicionais cadastradas para este slide.</p>'
+            };
+            document.getElementById('notes-modal-title').innerText = note.title;
+            document.getElementById('notes-modal-body').innerHTML = note.body;
+            document.getElementById('notes-modal').classList.remove('hidden');
+        }
+
+        window.onload = () => {
+            updateSlideUI();
+        };
+    </script>
+</body>
+</html>

@@ -4,7 +4,8 @@ description: >-
   Defines required conventions for creating or editing slides in this
   project's Red Hat container training decks (Introdução a Containers e
   Podman.html, anatomia_de_containers_kernel_cgroups_e_selinux.html,
-  do_kernel_ao_openshift_a_jornada_dos_containers_corporativos.html). Every
+  do_kernel_ao_openshift_a_jornada_dos_containers_corporativos.html,
+  seguranca_em_kubernetes_hardening_rbac_e_observabilidade.html). Every
   slide must ship with a Presenter Notes entry (detailed command flags,
   terminology, abbreviations, references) and every slide containing a
   terminal/CLI command must include a small JS/CSS typing animation
@@ -14,7 +15,7 @@ description: >-
 
 # Presentation Slide Standards
 
-Applies to the 3 slide-deck HTML files in this project. Each deck is a
+Applies to the 4 slide-deck HTML files in this project. Each deck is a
 self-contained `<section class="slide">` carousel driven by `slides`,
 `currentSlide`, `totalSlides` and `updateSlideUI()`.
 
