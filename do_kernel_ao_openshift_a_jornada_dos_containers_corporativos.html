@@ -105,6 +105,12 @@
     <!-- Main Viewport -->
     <main class="flex-1 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
 
+        <!-- Botão flutuante: Notas do Apresentador (presente em todos os slides) -->
+        <button onclick="showPresenterNotes()" class="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-30 flex items-center space-x-2 bg-rh-card hover:bg-rh-red border border-rh-border hover:border-rh-red text-gray-200 hover:text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg transition select-none" title="Notas do Apresentador">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="hidden md:inline">Notas do Apresentador</span>
+        </button>
+
         <!-- ==================== SLIDE 0: Capa Oficial Red Hat ==================== -->
         <section class="slide active w-full h-full flex-col">
             <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
@@ -661,7 +667,7 @@
         <!-- ==================== SLIDE FINAL: Encerramento Oficial Red Hat ==================== -->
         <section class="slide w-full h-full flex-col">
             <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
-                <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16" style="padding-bottom:15%;">
+                <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16 space-x-6 md:space-x-10" style="padding-bottom:15%;">
                     <div class="flex-1 space-y-3">
                         <h1 class="italic font-heading font-black text-white text-4xl md:text-6xl">Thank you!</h1>
                         <p class="italic text-white/90 text-sm md:text-base max-w-md leading-relaxed">Continue estudando: crie uma conta no <code class="not-italic font-mono bg-black/20 px-1 rounded">Red Hat Developer Sandbox</code> e implante seu primeiro Pod com <code class="not-italic font-mono bg-black/20 px-1 rounded">oc apply</code>.</p>
@@ -670,6 +676,12 @@
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">in</span><span>linkedin.com/company/red-hat</span></div>
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">▶</span><span>youtube.com/user/RedHatVideos</span></div>
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">f</span><span>facebook.com/redhatinc</span></div>
+                    </div>
+                    <div class="hidden sm:flex flex-col items-center space-y-1.5 shrink-0">
+                        <div class="bg-white p-1.5 rounded-lg shadow-lg">
+                            <img src="assets/ebooks.png" alt="QR Code para e-books gratuitos da Red Hat Developers" class="w-16 h-16 md:w-20 md:h-20 block rounded">
+                        </div>
+                        <span class="not-italic text-white/80 text-[9px] md:text-[10px] text-center leading-tight max-w-[100px]">E-books gratuitos<br>Red Hat Developers</span>
                     </div>
                 </div>
                 <div class="absolute left-10 md:left-20 flex items-center space-x-3" style="bottom:19%;">
@@ -761,6 +773,27 @@
         </div>
     </div>
 
+    <!-- Modal: Notas do Apresentador -->
+    <div id="notes-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-rh-black border border-rh-border w-full max-w-2xl max-h-[85vh] rounded-xl p-6 space-y-4 shadow-2xl flex flex-col">
+            <div class="flex items-center justify-between border-b border-rh-border pb-3 shrink-0">
+                <h3 class="text-base font-bold text-white flex items-center space-x-2 pr-4">
+                    <svg class="w-4 h-4 text-rh-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span id="notes-modal-title">Notas do Apresentador</span>
+                </h3>
+                <button onclick="toggleModal('notes-modal')" class="text-gray-400 hover:text-white text-lg font-mono shrink-0">✕</button>
+            </div>
+            <div id="notes-modal-body" class="space-y-3 text-xs text-gray-300 leading-relaxed overflow-y-auto custom-scroll pr-1">
+                <!-- injetado via JS -->
+            </div>
+            <div class="flex justify-end pt-2 shrink-0">
+                <button onclick="toggleModal('notes-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Presentation Engine -->
     <script>
         const slides = document.querySelectorAll('.slide');
@@ -830,6 +863,198 @@
         function toggleModal(id) {
             const modal = document.getElementById(id);
             modal.classList.toggle('hidden');
+        }
+
+        // ==================== Notas do Apresentador (por slide) ====================
+        const presenterNotes = [
+            // 0 - Capa Oficial Red Hat
+            {
+                title: 'Slide 0 · Abertura do Módulo 3',
+                body: `
+                    <p>Recapitule brevemente os dois módulos anteriores em uma frase cada: "no Módulo 1 aprendemos <em>o quê</em> o Podman faz; no Módulo 2 vimos <em>como</em> o Kernel implementa isso em uma única máquina. Hoje veremos <em>por que</em> uma única máquina não basta e como o Kubernetes/OpenShift escalam esses mesmos conceitos".</p>
+                    <p>Este é o módulo mais "arquitetural" — menos comandos de terminal, mais diagramas e comparações. Ajuste o ritmo: pode ser um pouco mais expositivo/dialogado do que os anteriores.</p>
+                `
+            },
+            // 1 - Capa / 3 Camadas
+            {
+                title: 'Slide 1 · As 3 camadas da jornada',
+                body: `
+                    <p>Este slide estabelece o mapa mental do módulo inteiro: Host Local (Podman) → Orquestração (Kubernetes) → Plataforma Enterprise (OpenShift). Cada camada adiciona uma capacidade que a anterior não tinha, sem descartar nada de baixo.</p>
+                    <p>Ponto pedagógico importante: deixe claro que o OpenShift <strong>não substitui</strong> o Kubernetes — a API do OpenShift é 100% compatível com a API do Kubernetes (isso será retomado explicitamente no slide 5). O OpenShift adiciona uma camada de produto em cima, não troca a fundação.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://kubernetes.io/docs/concepts/overview/" target="_blank" class="text-blue-400 hover:underline">Kubernetes Docs: Overview</a></li>
+                            <li><a href="https://docs.openshift.com/container-platform/latest/welcome/index.html" target="_blank" class="text-blue-400 hover:underline">Red Hat OpenShift Container Platform Docs</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 2 - Podman como Laboratório do K8s
+            {
+                title: 'Slide 2 · O Podman como ponte prática',
+                body: `
+                    <p>Este slide retoma diretamente o que foi mostrado no Módulo 1 (slide "Pontes para Nuvem"). Se a turma já viu aquele slide, use-o como revisão rápida antes de avançar para o "porquê" do Kubernetes nos próximos slides.</p>
+                    <p>Reforce a frase final do card direito: "o desenvolvedor testa o pod exatamente como ele executará no cluster de produção" — esse é o principal argumento de negócio para adotar Podman em ambientes de desenvolvimento mesmo quando o destino final é Kubernetes/OpenShift.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-kube-generate.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-kube-generate</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 3 - O Salto para o Kubernetes
+            {
+                title: 'Slide 3 · Por que uma máquina não basta',
+                body: `
+                    <p>Este é o slide-chave para justificar a existência do Kubernetes perante alunos que já dominam Podman. Sugestão de pergunta retórica para abrir: "o que vocês fariam se o servidor onde está o Podman simplesmente desligasse à 1h da manhã?" — a resposta (nada, o serviço cai) motiva naturalmente o conceito de Self-Healing.</p>
+                    <p>No diagrama do "Loop de Reconciliação", explique que este é o <strong>padrão de design mais importante</strong> de todo o Kubernetes: controladores continuamente comparam o "estado desejado" (o YAML) com o "estado real" (o cluster) e agem para eliminar qualquer diferença — não é um comando único que "executa e termina", é um processo contínuo.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://kubernetes.io/docs/concepts/architecture/controller/" target="_blank" class="text-blue-400 hover:underline">Kubernetes Docs: Controllers</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 4 - Do Kubelet ao Kernel (CRI-O e crun)
+            {
+                title: 'Slide 4 · Fechando o ciclo com o Kernel',
+                body: `
+                    <p>Este é o slide que "fecha o círculo" pedagogicamente: prova para a turma que não existe mágica nova em Kubernetes/OpenShift — no fim da cadeia (Kubelet → CRI-O → crun), é o <strong>mesmo</strong> runtime <code class="text-white">crun</code> visto no Módulo 1/2 quem efetivamente cria os namespaces, cgroups e contexto SELinux.</p>
+                    <p>Detalhe que vale a pena adicionar oralmente (não está no slide): assim como o Podman usa <code class="text-white">conmon</code> para monitorar containers sem depender de um daemon central, o CRI-O também usa <code class="text-white">conmon</code> (ou o mais recente <code class="text-white">conmon-rs</code>) na mesma função — outra prova da reutilização de componentes entre as duas ferramentas, ambas mantidas majoritariamente pela Red Hat/comunidade containers.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://cri-o.io/" target="_blank" class="text-blue-400 hover:underline">Projeto CRI-O</a></li>
+                            <li><a href="https://kubernetes.io/docs/concepts/architecture/cri/" target="_blank" class="text-blue-400 hover:underline">Kubernetes Docs: Container Runtime Interface (CRI)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 5 - Por que OpenShift?
+            {
+                title: 'Slide 5 · Kubernetes puro vs. OpenShift',
+                body: `
+                    <p>Enquadre esta tabela evitando o tom de "marketing" — o objetivo é mostrar que o Kubernetes puro entrega os primitivos (API, scheduler, etcd), mas deixa em aberto dezenas de decisões operacionais (qual SO usar, como fazer upgrade sem downtime, como expor serviços) que uma empresa precisaria resolver artesanalmente. O OpenShift entrega essas respostas prontas e testadas/suportadas.</p>
+                    <p>A citação central do slide ("a API do OpenShift é 100% Kubernetes") é tecnicamente verdadeira e importante: qualquer manifesto YAML padrão de Kubernetes funciona sem alteração em um cluster OpenShift — não há um "dialeto" proprietário.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.openshift.com/container-platform/latest/architecture/architecture.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: OpenShift Container Platform Architecture</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 6 - RHCOS e MCO
+            {
+                title: 'Slide 6 · O sistema operacional como componente do cluster',
+                body: `
+                    <p>Este conceito costuma ser uma revelação para alunos vindos de administração de sistemas tradicional: no OpenShift, você normalmente <strong>não faz SSH</strong> nos nós para configurá-los manualmente. Qualquer mudança de configuração de SO passa por um objeto declarativo (<code class="text-yellow-400">MachineConfig</code>) gerenciado pelo cluster.</p>
+                    <p>Explique o fluxo do MCO de forma sequencial e concreta: (1) o admin cria/edita um <code class="text-yellow-400">MachineConfig</code>, (2) o MCO gera um novo "render" combinando todas as configs daquele pool de máquinas, (3) o Machine Config Daemon em cada nó detecta a mudança, drena o nó com segurança (movendo os pods para outros nós antes), aplica a atualização via <code class="text-white">rpm-ostree</code> de forma atômica, e reinicia o nó.</p>
+                    <p>Isso é o que garante que 500 nós de um cluster nunca "divirjam" silenciosamente entre si — um problema clássico e doloroso em infraestrutura tradicional.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.openshift.com/container-platform/latest/architecture/architecture-rhcos.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: RHCOS Architecture</a></li>
+                            <li><a href="https://docs.openshift.com/container-platform/latest/post_installation_configuration/machine-configuration-tasks.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: Machine Config Operator</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 7 - Operators e OLM v1
+            {
+                title: 'Slide 7 · Operators: automação como software',
+                body: `
+                    <p>Boa definição para citar em aula (paráfrase de CoreOS/Red Hat): "um Operator é a forma de capturar o conhecimento de um administrador humano especialista em software" — ao invés de um runbook em uma wiki, o conhecimento vira código executado continuamente pelo Kubernetes.</p>
+                    <p>A distinção Day 1 / Day 2 é um ótimo gancho para exemplos do mundo real: peça para a turma imaginar como seria fazer upgrade de um cluster de banco de dados PostgreSQL distribuído manualmente (backup, failover, teste, rollback) vs. deixar um Operator do Postgres cuidar disso automaticamente.</p>
+                    <p>Sobre OLM v1: é importante deixar claro que é uma evolução do gerenciamento de ciclo de vida dos próprios Operators (instalação, atualização, resolução de dependências), não dos workloads da aplicação em si.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://olm.operatorframework.io/" target="_blank" class="text-blue-400 hover:underline">Operator Framework / OLM</a></li>
+                            <li><a href="https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/extensions/olmv1-understanding-olmv1" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: Understanding OLM v1</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 8 - Segurança Enterprise e Multitenancy
+            {
+                title: 'Slide 8 · Multi-tenancy: fechando o ciclo com SELinux',
+                body: `
+                    <p>Este slide é o segundo grande "fecho de ciclo" do módulo, conectando diretamente com o Módulo 2: o card "SELinux MCS Automático" é literalmente a mesma tecnologia de categorias MCS vista antes — a única diferença é que no OpenShift o cluster atribui e gerencia essas categorias automaticamente por <strong>Project</strong>, sem intervenção manual do administrador.</p>
+                    <p>Sobre SCCs (Security Context Constraints): é o mecanismo do OpenShift que decide quais capabilities, UIDs e volumes um pod pode usar — é análogo a uma "política central" que se aplica a todos os pods de um Project, complementando (não substituindo) o Pod Security do Kubernetes puro.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.openshift.com/container-platform/latest/authentication/managing-security-context-constraints.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: Managing Security Context Constraints</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 9 - A Plataforma Completa
+            {
+                title: 'Slide 9 · O ecossistema integrado do OpenShift',
+                body: `
+                    <p>Não é preciso entrar a fundo em cada ferramenta — o objetivo pedagógico aqui é mostrar <strong>amplitude</strong>: o que em Kubernetes puro exigiria integrar 4-5 ferramentas de terceiros separadamente (um CI/CD, uma ferramenta de GitOps, uma solução de VMs, um ingress controller) vem pré-integrado e suportado como parte da assinatura do OpenShift.</p>
+                    <p>Vale mencionar rapidamente as tecnologias upstream por trás de cada card, já que são projetos open source conhecidos por si só: <strong>Argo CD</strong> (GitOps), <strong>Tekton</strong> (Pipelines), <strong>KubeVirt</strong> (Virtualization) — o OpenShift empacota, testa e dá suporte comercial a esses projetos CNCF/open source.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.openshift.com/gitops/latest/understanding_openshift_gitops/about-redhat-openshift-gitops.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: OpenShift GitOps</a></li>
+                            <li><a href="https://docs.openshift.com/pipelines/latest/about/understanding-openshift-pipelines.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: OpenShift Pipelines</a></li>
+                            <li><a href="https://docs.openshift.com/container-platform/latest/virt/about-virt.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: OpenShift Virtualization</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 10 - O Mapeamento Completo
+            {
+                title: 'Slide 10 · A matriz evolutiva ponta a ponta',
+                body: `
+                    <p>Esta tabela é o melhor material de revisão de <strong>todo o curso</strong> (não só do Módulo 3) — cada linha percorre um conceito desde o Kernel puro até o OpenShift. Considere reservar um tempo extra aqui para revisão geral antes de qualquer avaliação.</p>
+                    <p>Sugestão de dinâmica: peça para a turma, em duplas, tentar preencher de memória a coluna "3. Red Hat OpenShift 4.22" olhando apenas para a coluna "1. Kernel & Podman" — é um exercício eficaz para verificar se a jornada completa (Módulos 1→2→3) foi de fato internalizada.</p>
+                `
+            },
+            // 11 - Finalização e Perguntas (Laboratórios)
+            {
+                title: 'Slide 11 · Preparando os laboratórios práticos',
+                body: `
+                    <p>Este slide marca a transição da teoria para a prática hands-on. Se os laboratórios forem em outra sessão, use este momento para alinhar pré-requisitos: acesso a um cluster OpenShift (ex: Developer Sandbox, veja referência abaixo) e o Podman já instalado localmente desde o Módulo 1.</p>
+                    <p>Sugestão de ordem de execução dos laboratórios: primeiro reproduzir o Laboratório 1 (gerar o YAML localmente com Podman) e só então aplicá-lo no Laboratório 2 via <code class="text-white">oc apply</code> — isso reforça visualmente, na prática, exatamente a "ponte" discutida ao longo de todo o curso.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: Getting started with the OpenShift CLI (oc)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 12 - Encerramento
+            {
+                title: 'Slide 12 · Encerramento do curso',
+                body: `
+                    <p>Momento de encerrar a trilha completa das 3 aulas. Sugestão de fechamento: peça para cada aluno resumir em uma frase "o que é um container" usando o vocabulário aprendido (processo + namespaces + cgroups + SELinux) — é uma forma rápida e reveladora de avaliar a fixação do conteúdo de toda a disciplina.</p>
+                    <p>O <strong>Red Hat Developer Sandbox</strong> citado no slide é gratuito e não exige cartão de crédito — é a forma mais simples de os alunos continuarem praticando <code class="text-white">oc</code> em um cluster OpenShift real após a aula, sem custo de infraestrutura.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://developers.redhat.com/developer-sandbox" target="_blank" class="text-blue-400 hover:underline">Red Hat Developer Sandbox (gratuito)</a></li>
+                        </ul>
+                    </div>
+                `
+            }
+        ];
+
+        function showPresenterNotes() {
+            const note = presenterNotes[currentSlide] || {
+                title: 'Notas do Apresentador',
+                body: '<p>Sem notas adicionais cadastradas para este slide.</p>'
+            };
+            document.getElementById('notes-modal-title').innerText = note.title;
+            document.getElementById('notes-modal-body').innerHTML = note.body;
+            document.getElementById('notes-modal').classList.remove('hidden');
         }
 
         window.onload = () => {

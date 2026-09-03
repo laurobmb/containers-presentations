@@ -104,6 +104,12 @@
     <!-- Presentation Area -->
     <main class="flex-1 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
 
+        <!-- Botão flutuante: Notas do Apresentador (presente em todos os slides) -->
+        <button onclick="showPresenterNotes()" class="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-30 flex items-center space-x-2 bg-rh-card hover:bg-rh-red border border-rh-border hover:border-rh-red text-gray-200 hover:text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg transition select-none" title="Notas do Apresentador">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="hidden md:inline">Notas do Apresentador</span>
+        </button>
+
         <!-- ==================== SLIDE 0: Capa Oficial Red Hat ==================== -->
         <section class="slide active w-full h-full flex-col">
             <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
@@ -551,7 +557,7 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
         <!-- ==================== SLIDE FINAL: Encerramento Oficial Red Hat ==================== -->
         <section class="slide w-full h-full flex-col">
             <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
-                <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16" style="padding-bottom:15%;">
+                <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16 space-x-6 md:space-x-10" style="padding-bottom:15%;">
                     <div class="flex-1 space-y-3">
                         <h1 class="italic font-heading font-black text-white text-4xl md:text-6xl">Thank you!</h1>
                         <p class="italic text-white/90 text-sm md:text-base max-w-md leading-relaxed">Continue estudando: pratique <code class="not-italic font-mono bg-black/20 px-1 rounded">podman run</code>, <code class="not-italic font-mono bg-black/20 px-1 rounded">pod create</code> e <code class="not-italic font-mono bg-black/20 px-1 rounded">kube play</code> no seu terminal.</p>
@@ -560,6 +566,12 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">in</span><span>linkedin.com/company/red-hat</span></div>
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">▶</span><span>youtube.com/user/RedHatVideos</span></div>
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">f</span><span>facebook.com/redhatinc</span></div>
+                    </div>
+                    <div class="hidden sm:flex flex-col items-center space-y-1.5 shrink-0">
+                        <div class="bg-white p-1.5 rounded-lg shadow-lg">
+                            <img src="assets/ebooks.png" alt="QR Code para e-books gratuitos da Red Hat Developers" class="w-16 h-16 md:w-20 md:h-20 block rounded">
+                        </div>
+                        <span class="not-italic text-white/80 text-[9px] md:text-[10px] text-center leading-tight max-w-[100px]">E-books gratuitos<br>Red Hat Developers</span>
                     </div>
                 </div>
                 <div class="absolute left-10 md:left-20 flex items-center space-x-3" style="bottom:19%;">
@@ -640,6 +652,27 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
         </div>
     </div>
 
+    <!-- Modal: Notas do Apresentador -->
+    <div id="notes-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-rh-black border border-rh-border w-full max-w-2xl max-h-[85vh] rounded-xl p-6 space-y-4 shadow-2xl flex flex-col">
+            <div class="flex items-center justify-between border-b border-rh-border pb-3 shrink-0">
+                <h3 class="text-base font-bold text-white flex items-center space-x-2 pr-4">
+                    <svg class="w-4 h-4 text-rh-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span id="notes-modal-title">Notas do Apresentador</span>
+                </h3>
+                <button onclick="toggleModal('notes-modal')" class="text-gray-400 hover:text-white text-lg font-mono shrink-0">✕</button>
+            </div>
+            <div id="notes-modal-body" class="space-y-3 text-xs text-gray-300 leading-relaxed overflow-y-auto custom-scroll pr-1">
+                <!-- injetado via JS -->
+            </div>
+            <div class="flex justify-end pt-2 shrink-0">
+                <button onclick="toggleModal('notes-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Engine JS -->
     <script>
         const slides = document.querySelectorAll('.slide');
@@ -709,6 +742,190 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
         function toggleModal(id) {
             const modal = document.getElementById(id);
             modal.classList.toggle('hidden');
+        }
+
+        // ==================== Notas do Apresentador (por slide) ====================
+        const presenterNotes = [
+            // 0 - Capa Oficial Red Hat
+            {
+                title: 'Slide 0 · Abertura da Aula',
+                body: `
+                    <p>Slide puramente institucional (sem clique de avanço automático). Use-o para a saudação inicial e para contextualizar a turma: esta é a <strong>Aula 1 de 3</strong> de uma trilha que vai do terminal (Podman) até o cluster corporativo (OpenShift).</p>
+                    <p>Sugestão de abertura oral: pergunte quem já usou <em>Docker</em> ou <em>Docker Desktop</em> antes — isso ajuda a calibrar o ritmo da explicação nos próximos slides, já que boa parte do vocabulário é compartilhado entre as duas ferramentas.</p>
+                    <p>Defina a expectativa: a aula é prática. Sempre que possível, reproduza os comandos ao vivo no terminal em vez de apenas ler o slide.</p>
+                `
+            },
+            // 1 - Capa / Agenda
+            {
+                title: 'Slide 1 · Enquadrando os 3 Pilares da Aula',
+                body: `
+                    <p>Este slide funciona como <strong>agenda</strong>. Os três cartões (VM vs Container, O que é Podman, Conceito de Pods) antecipam a estrutura lógica do restante do módulo — cada um deles vira um bloco de slides mais adiante.</p>
+                    <p>Ponto importante para reforçar verbalmente: o Podman <strong>não é</strong> um clone do Docker. É uma reimplementação da Red Hat feita do zero, com foco em segurança (rootless e daemonless), que por coincidência histórica manteve compatibilidade de sintaxe com a CLI do Docker.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.podman.io/en/latest/" target="_blank" class="text-blue-400 hover:underline">Documentação oficial do Podman</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 2 - O Problema e a Solução (VM vs Container)
+            {
+                title: 'Slide 2 · VMs vs Containers: aprofundando',
+                body: `
+                    <p>Reforce que o container <strong>não tem kernel próprio</strong> — ele é apenas um processo Linux comum, visível no <code class="text-rh-red">ps aux</code> do host, apenas com visibilidade e recursos restritos por Namespaces e cgroups (assunto do Módulo 2).</p>
+                    <p>Sobre o tempo de boot: uma VM precisa passar por BIOS/UEFI, bootloader (GRUB) e inicializar um kernel completo antes de chegar ao seu processo de aplicação — por isso leva de segundos a minutos. Um container "pula" tudo isso: o kernel já está rodando (é o do host), então iniciar um container é essencialmente um <code class="text-rh-red">fork()+exec()</code>, na prática sub-segundo.</p>
+                    <p>Se a turma tiver contato com virtualização, vale citar a diferença entre hypervisors <strong>Tipo 1</strong> (bare-metal, ex: KVM/ESXi) e <strong>Tipo 2</strong> (hospedado, ex: VirtualBox) — os containers eliminam a camada de hypervisor por completo.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://man7.org/linux/man-pages/man7/namespaces.7.html" target="_blank" class="text-blue-400 hover:underline">man7: namespaces(7)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 3 - OCI
+            {
+                title: 'Slide 3 · Por que padrões abertos importam',
+                body: `
+                    <p>Contexto histórico útil para a turma: em 2015, após o crescimento do Docker, surgiu o risco de fragmentação do ecossistema (a chamada "guerra dos runtimes", com o CoreOS <em>rkt</em> concorrendo diretamente). Para evitar isso, a Docker Inc. doou a especificação de imagem para a <strong>Open Container Initiative (OCI)</strong>, uma fundação sob a Linux Foundation.</p>
+                    <p>Detalhe técnico que vale explicar: uma imagem OCI é, na prática, um conjunto de <em>layers</em> (camadas tar+gzip) endereçadas por hash SHA-256, mais um <code class="text-rh-red">manifest.json</code> que as referencia. É por isso que camadas idênticas entre imagens diferentes podem ser reaproveitadas (cache) e por isso a imagem é imutável.</p>
+                    <p>Sobre o Runtime Spec: <code class="text-blue-300">crun</code> (escrito em C pela Red Hat, usado por padrão no Podman e no CRI-O/OpenShift) e <code class="text-blue-300">runc</code> (escrito em Go, usado pelo Docker) implementam a <strong>mesma</strong> especificação — por isso são intercambiáveis.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://github.com/opencontainers/image-spec/blob/main/spec.md" target="_blank" class="text-blue-400 hover:underline">OCI Image Format Specification</a></li>
+                            <li><a href="https://github.com/opencontainers/runtime-spec/blob/main/spec.md" target="_blank" class="text-blue-400 hover:underline">OCI Runtime Specification</a></li>
+                            <li><a href="https://github.com/containers/crun" target="_blank" class="text-blue-400 hover:underline">crun (runtime OCI da Red Hat)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 4 - Por que Podman? (Daemon vs Daemonless)
+            {
+                title: 'Slide 4 · A queda do modelo Daemon',
+                body: `
+                    <p>Vale citar o motivador real de mercado: times de segurança corporativos historicamente vetavam o uso do Docker em produção pelo fato de o socket <code class="text-amber-300">/var/run/docker.sock</code> equivaler, na prática, a acesso root irrestrito ao host — qualquer processo com permissão de escrita nesse socket pode montar <code class="text-amber-300">/</code> do host dentro de um container e escapar do isolamento.</p>
+                    <p>O Podman resolve isso não "corrigindo" o Docker, mas eliminando o daemon: cada <code class="text-rh-red">podman run</code> cria um processo filho direto da sua sessão de shell, monitorado por um pequeno processo auxiliar chamado <code class="text-rh-red">conmon</code> (Container Monitor), que segura os file descriptors de stdout/stderr e mantém o container vivo mesmo que a CLI do Podman seja encerrada.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://www.redhat.com/en/blog/say-hello-podman" target="_blank" class="text-blue-400 hover:underline">Red Hat Blog: "Say hello to Podman"</a></li>
+                            <li><a href="https://github.com/containers/conmon" target="_blank" class="text-blue-400 hover:underline">Projeto conmon (GitHub)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 5 - Pilares do Podman
+            {
+                title: 'Slide 5 · Detalhando os 3 pilares',
+                body: `
+                    <p><strong>Daemonless:</strong> além de economizar memória em repouso (não há processo residente consumindo RAM 24/7), facilita auditoria — o comando executado fica associado ao UID real do usuário no log do <code class="text-rh-red">auditd</code>, e não a um daemon genérico rodando como root.</p>
+                    <p><strong>Rootless First:</strong> este slide é só a introdução — o mecanismo de <em>User Namespaces</em> e o mapeamento via <code class="text-rh-red">/etc/subuid</code>/<code class="text-rh-red">/etc/subgid</code> será detalhado com exemplos numéricos no Módulo 2 (slide "Podman Rootless"). Não é preciso entrar em profundidade aqui, apenas plantar a semente do conceito.</p>
+                    <p><strong>Pods Nativo:</strong> reforce que isso é praticamente exclusivo do Podman entre as ferramentas de container "estilo Docker" — nem o Docker CLI, nem o Buildah, oferecem esse agrupamento nativamente sem uma ferramenta externa como o Docker Compose.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://man7.org/linux/man-pages/man5/subuid.5.html" target="_blank" class="text-blue-400 hover:underline">man7: subuid(5)</a></li>
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-pod.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-pod</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 6 - CLI na Prática
+            {
+                title: 'Slide 6 · Roteiro para demonstração ao vivo',
+                body: `
+                    <p>Se possível, <strong>não apenas leia</strong> este slide — rode os 5 comandos em tempo real no terminal projetado. É o momento de maior engajamento da aula.</p>
+                    <p>Dica prática: <code class="text-yellow-400">podman ps</code> trunca nomes de imagem longos por padrão; use <code class="text-yellow-400">podman ps --no-trunc</code> se quiser mostrar o ID completo. Já <code class="text-yellow-400">podman logs -f</code> funciona como um <code class="text-yellow-400">tail -f</code>, ideal para mostrar que o NGINX está de fato recebendo requisições se você abrir <code class="text-yellow-400">curl localhost:8080</code> em outra aba.</p>
+                    <p><strong>Atenção a uma pegadinha comum:</strong> imagens minimalistas (Alpine, UBI-micro, etc.) frequentemente não possuem o binário <code class="text-yellow-400">bash</code> instalado. Se ao vivo o <code class="text-yellow-400">podman exec -it meu-web bash</code> falhar com "executable file not found", troque para <code class="text-yellow-400">sh</code> — é um ótimo gancho para explicar por que imagens de produção devem ser o mais enxutas possível.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-run.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-run</a></li>
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-logs.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-logs</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 7 - Conceito de Pods
+            {
+                title: 'Slide 7 · Pods no Podman = Pods no Kubernetes',
+                body: `
+                    <p>O ponto pedagógico mais importante deste slide: o conceito de Pod aqui é <strong>semanticamente idêntico</strong> ao Pod do Kubernetes — mesmo modelo de "um IP por grupo de containers", mesmo container de infraestrutura reservando rede (no Kubernetes chamado de <em>pause container</em>).</p>
+                    <p>Isso não é coincidência: os mesmos engenheiros que constroem o Podman na Red Hat também contribuem para o Kubernetes/OpenShift, e desenharam a ferramenta deliberadamente para que desenvolvedores pudessem prototipar localmente exatamente a mesma topologia que rodará em produção.</p>
+                    <p>Vale reforçar que dentro do Pod a comunicação entre containers é feita por <code class="text-rh-red">localhost</code> porque eles compartilham o mesmo Network Namespace — não é preciso configurar rede entre eles.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://kubernetes.io/docs/concepts/workloads/pods/" target="_blank" class="text-blue-400 hover:underline">Kubernetes Docs: Pods</a></li>
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-pod-create.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-pod-create</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 8 - Podman vs Docker
+            {
+                title: 'Slide 8 · Cuidado com a "guerra de religião"',
+                body: `
+                    <p>Enquadre esta tabela como uma comparação de <strong>posturas arquiteturais padrão</strong>, não como "Docker é ruim". O Docker Desktop ainda domina em muitas empresas e times, e o alias <code class="text-yellow-400">alias docker=podman</code> funciona para a grande maioria dos comandos do dia a dia justamente por essa compatibilidade de CLI.</p>
+                    <p>Detalhe honesto para mencionar se um aluno perguntar: o Docker moderno também oferece um <em>modo rootless</em> (desde a versão 20.10), mas ele é opcional e requer configuração extra — no Podman o rootless é o comportamento padrão e nativo desde o primeiro dia do projeto.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.docker.com/engine/security/rootless/" target="_blank" class="text-blue-400 hover:underline">Docker Docs: Rootless mode</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 9 - Pontes para Nuvem
+            {
+                title: 'Slide 9 · O "aha moment" da aula: a ponte para o Módulo 3',
+                body: `
+                    <p>Este é o slide mais importante para conectar os 3 módulos. Enfatize que o YAML gerado por <code class="text-yellow-300">podman kube generate</code> é um manifesto Kubernetes <strong>real e válido</strong> (<code class="text-yellow-300">apiVersion: v1, kind: Pod</code>) — pode ser aplicado sem nenhuma alteração com <code class="text-yellow-300">kubectl apply -f pod.yaml</code> ou <code class="text-yellow-300">oc apply -f pod.yaml</code> em um cluster real.</p>
+                    <p>Sugestão forte: demonstre isso ao vivo (gerar o YAML, abrir o arquivo, mostrar a estrutura) — é o momento que mais costuma gerar o "clique" na turma sobre por que aprender Podman antes de Kubernetes faz sentido pedagógico.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-kube-generate.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-kube-generate</a></li>
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-kube-play.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-kube-play</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 10 - Resumo e Conclusão
+            {
+                title: 'Slide 10 · Fechando o Módulo 1',
+                body: `
+                    <p>Momento ideal para uma checagem rápida de aprendizado — pergunte oralmente à turma "por que o Podman não usa daemon?" ou "o que acontece dentro de um Pod?" antes de seguir.</p>
+                    <p>Gancho para o próximo módulo: hoje vimos <strong>o quê</strong> o Podman faz (comandos, pods, compatibilidade OCI). Na próxima aula vamos abrir o capô e ver <strong>como</strong> o Linux Kernel de fato implementa esse isolamento por baixo dos panos (Namespaces, cgroups v2 e SELinux).</p>
+                `
+            },
+            // 11 - Encerramento
+            {
+                title: 'Slide 11 · Encerramento e Tarefa de Casa',
+                body: `
+                    <p>Sugestão de tarefa prática para antes da próxima aula: instalar o Podman localmente (nativo em Fedora/RHEL, ou via WSL2 no Windows) e reproduzir os 5 comandos do slide de CLI na prática.</p>
+                    <p>Vale mencionar o <strong>Red Hat Developer Program</strong>, que oferece assinaturas gratuitas do RHEL para uso individual/educacional — útil para quem quiser testar em um ambiente idêntico ao de produção corporativa.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://developers.redhat.com/products/rhel/download" target="_blank" class="text-blue-400 hover:underline">Red Hat Developer: RHEL gratuito</a></li>
+                            <li><a href="https://podman.io/docs/installation" target="_blank" class="text-blue-400 hover:underline">Guia de instalação do Podman</a></li>
+                        </ul>
+                    </div>
+                `
+            }
+        ];
+
+        function showPresenterNotes() {
+            const note = presenterNotes[currentSlide] || {
+                title: 'Notas do Apresentador',
+                body: '<p>Sem notas adicionais cadastradas para este slide.</p>'
+            };
+            document.getElementById('notes-modal-title').innerText = note.title;
+            document.getElementById('notes-modal-body').innerHTML = note.body;
+            document.getElementById('notes-modal').classList.remove('hidden');
         }
 
         window.onload = () => {

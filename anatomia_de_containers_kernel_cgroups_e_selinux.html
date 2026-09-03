@@ -107,6 +107,12 @@
     <!-- Main Presentation Viewport -->
     <main class="flex-1 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
 
+        <!-- Botão flutuante: Notas do Apresentador (presente em todos os slides) -->
+        <button onclick="showPresenterNotes()" class="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-30 flex items-center space-x-2 bg-rh-card hover:bg-rh-red border border-rh-border hover:border-rh-red text-gray-200 hover:text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg transition select-none" title="Notas do Apresentador">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="hidden md:inline">Notas do Apresentador</span>
+        </button>
+
         <!-- ==================== SLIDE 0: Capa Oficial Red Hat ==================== -->
         <section class="slide active w-full h-full flex-col">
             <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
@@ -677,7 +683,7 @@ user       1   12458 root   nginx: master process
         <!-- ==================== SLIDE FINAL: Encerramento Oficial Red Hat ==================== -->
         <section class="slide w-full h-full flex-col">
             <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
-                <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16" style="padding-bottom:15%;">
+                <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16 space-x-6 md:space-x-10" style="padding-bottom:15%;">
                     <div class="flex-1 space-y-3">
                         <h1 class="italic font-heading font-black text-white text-4xl md:text-6xl">Thank you!</h1>
                         <p class="italic text-white/90 text-sm md:text-base max-w-md leading-relaxed">Continue estudando: explore os namespaces com <code class="not-italic font-mono bg-black/20 px-1 rounded">lsns</code>, inspecione <code class="not-italic font-mono bg-black/20 px-1 rounded">/sys/fs/cgroup</code> e teste as flags <code class="not-italic font-mono bg-black/20 px-1 rounded">:z</code>/<code class="not-italic font-mono bg-black/20 px-1 rounded">:Z</code> do SELinux.</p>
@@ -686,6 +692,12 @@ user       1   12458 root   nginx: master process
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">in</span><span>linkedin.com/company/red-hat</span></div>
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">▶</span><span>youtube.com/user/RedHatVideos</span></div>
                         <div class="flex items-center space-x-2"><span class="w-6 h-6 rounded bg-black/25 flex items-center justify-center not-italic font-bold text-[10px]">f</span><span>facebook.com/redhatinc</span></div>
+                    </div>
+                    <div class="hidden sm:flex flex-col items-center space-y-1.5 shrink-0">
+                        <div class="bg-white p-1.5 rounded-lg shadow-lg">
+                            <img src="assets/ebooks.png" alt="QR Code para e-books gratuitos da Red Hat Developers" class="w-16 h-16 md:w-20 md:h-20 block rounded">
+                        </div>
+                        <span class="not-italic text-white/80 text-[9px] md:text-[10px] text-center leading-tight max-w-[100px]">E-books gratuitos<br>Red Hat Developers</span>
                     </div>
                 </div>
                 <div class="absolute left-10 md:left-20 flex items-center space-x-3" style="bottom:19%;">
@@ -768,6 +780,27 @@ user       1   12458 root   nginx: master process
 
             <div class="flex justify-end pt-2">
                 <button onclick="toggleModal('kernel-map-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Notas do Apresentador -->
+    <div id="notes-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-rh-black border border-rh-border w-full max-w-2xl max-h-[85vh] rounded-xl p-6 space-y-4 shadow-2xl flex flex-col">
+            <div class="flex items-center justify-between border-b border-rh-border pb-3 shrink-0">
+                <h3 class="text-base font-bold text-white flex items-center space-x-2 pr-4">
+                    <svg class="w-4 h-4 text-rh-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span id="notes-modal-title">Notas do Apresentador</span>
+                </h3>
+                <button onclick="toggleModal('notes-modal')" class="text-gray-400 hover:text-white text-lg font-mono shrink-0">✕</button>
+            </div>
+            <div id="notes-modal-body" class="space-y-3 text-xs text-gray-300 leading-relaxed overflow-y-auto custom-scroll pr-1">
+                <!-- injetado via JS -->
+            </div>
+            <div class="flex justify-end pt-2 shrink-0">
+                <button onclick="toggleModal('notes-modal')" class="px-4 py-1.5 bg-rh-card hover:bg-rh-border text-gray-300 text-xs rounded transition border border-rh-border">
                     Fechar
                 </button>
             </div>
@@ -891,6 +924,174 @@ user       1   12458 root   nginx: master process
                 boxCg.innerText = 'Controladores cgroups monitoram o I/O de disco via io.max/io.weight.';
                 boxSec.innerText = 'Diretório recebe container_file_t:s0:c12,c99. Apenas este container terá permissão.';
             }
+        }
+
+        // ==================== Notas do Apresentador (por slide) ====================
+        const presenterNotes = [
+            // 0 - Capa Oficial Red Hat
+            {
+                title: 'Slide 0 · Abertura do Módulo 2',
+                body: `
+                    <p>Reforce a ponte com o Módulo 1: "aprendemos <em>o quê</em> o Podman faz; hoje vamos abrir o capô e ver <em>como</em> o Kernel Linux realmente implementa esse isolamento".</p>
+                    <p>Este módulo é o mais denso tecnicamente dos três. Reserve tempo extra para perguntas, especialmente nos slides de SELinux (historicamente o assunto que mais gera resistência/confusão entre alunos que só conhecem permissões UNIX tradicionais).</p>
+                `
+            },
+            // 1 - Capa / Os 4 Pilares
+            {
+                title: 'Slide 1 · Os 4 Pilares do Isolamento',
+                body: `
+                    <p>Este slide é o mapa mental de todo o módulo — cada pilar (Namespaces, cgroups v2, SELinux/MCS, Seccomp/Caps) vira um bloco de slides adiante, sempre respondendo a uma pergunta diferente: <strong>ver</strong>, <strong>gastar</strong>, <strong>acessar</strong>, <strong>executar</strong>.</p>
+                    <p>Vale desmistificar já neste slide a frase de abertura ("Containers Não Existem"): tecnicamente, não há uma estrutura de dados chamada "container" dentro do Kernel Linux. É uma combinação de mecanismos independentes que, juntos, dão a ilusão de uma máquina isolada.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://man7.org/linux/man-pages/man7/namespaces.7.html" target="_blank" class="text-blue-400 hover:underline">man7: namespaces(7)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 2 - Namespaces
+            {
+                title: 'Slide 2 · Namespaces em profundidade',
+                body: `
+                    <p>Se possível, rode o comando <code class="text-yellow-400">lsns</code> ao vivo em vez de só mostrar a captura de tela — reforça que isso não é teoria abstrata, é uma inspeção real do sistema em execução.</p>
+                    <p>Detalhe técnico importante: as syscalls <code class="text-rh-red">clone()</code> (cria um novo processo já dentro de um ou mais namespaces novos) e <code class="text-rh-red">unshare()</code> (remove o processo <em>atual</em> de um namespace compartilhado, colocando-o em um novo) são as duas formas de um processo entrar em um namespace. O Podman usa majoritariamente <code class="text-rh-red">clone()</code> ao criar o container.</p>
+                    <p>Sobre o PID Namespace especificamente: dentro do container o processo principal sempre é <strong>PID 1</strong> — isso tem uma implicação prática importante (que pode ser citada, mesmo sem aprofundar): o PID 1 precisa tratar sinais corretamente (SIGTERM/SIGCHLD) ou o container pode não encerrar de forma limpa, daí ferramentas como <code class="text-rh-red">tini</code> ou <code class="text-rh-red">dumb-init</code> serem usadas como "PID 1" em imagens de produção.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://man7.org/linux/man-pages/man2/clone.2.html" target="_blank" class="text-blue-400 hover:underline">man7: clone(2)</a></li>
+                            <li><a href="https://man7.org/linux/man-pages/man1/lsns.1.html" target="_blank" class="text-blue-400 hover:underline">man7: lsns(1)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 3 - cgroups v2
+            {
+                title: 'Slide 3 · cgroups v2 na prática',
+                body: `
+                    <p>Se der tempo, mostre ao vivo <code class="text-blue-300">podman stats</code> em um container em execução — ele lê exatamente os arquivos <code class="text-blue-300">/sys/fs/cgroup/.../memory.current</code>, <code class="text-blue-300">cpu.stat</code>, etc. que aparecem neste slide.</p>
+                    <p>Vale mencionar a diferença entre <strong>cgroups v1</strong> (múltiplas hierarquias separadas por controlador, legado) e <strong>v2</strong> (hierarquia unificada, adotada por padrão no RHEL 9 e Fedora recentes). Essa unificação é o que permite a <em>delegação sem privilégios</em> necessária para containers rootless — o kernel só delega uma sub-hierarquia do cgroup para o usuário comum via <code class="text-blue-300">systemd --user</code>.</p>
+                    <p>Analogia útil para a turma: cgroups são como o "medidor de energia elétrica" de um apartamento (o container) dentro do prédio (o host) — controla quanto cada unidade pode consumir, mas não decide quem pode entrar em qual cômodo (isso é papel do SELinux, próximo slide).</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.kernel.org/admin-guide/cgroup-v2.html" target="_blank" class="text-blue-400 hover:underline">Kernel Docs: cgroup v2 Admin Guide</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 4 - SELinux Overview
+            {
+                title: 'Slide 4 · SELinux: o slide mais crítico da aula',
+                body: `
+                    <p>Este costuma ser o conceito mais difícil para quem só conhece <code class="text-red-400">chmod</code>/<code class="text-red-400">chown</code>. Ajuda muito repetir a distinção central em voz alta: <strong>DAC</strong> (Discretionary — o dono decide) vs <strong>MAC</strong> (Mandatory — uma política central do Kernel decide, e nem o root pode simplesmente ignorá-la).</p>
+                    <p>Exemplo concreto e memorável para citar: mesmo com <code class="text-red-400">chmod 777 /etc/shadow</code>, um processo rotulado como <code class="text-green-400">container_t</code> ainda recebe "Permission Denied" ao tentar ler o arquivo, porque a política SELinux nunca concede acesso a objetos rotulados como <code class="text-yellow-300">shadow_t</code> para esse domínio — independentemente das permissões UNIX.</p>
+                    <p>Vale citar que o SELinux não é exclusividade de containers: é o mesmo subsistema que protege qualquer processo no RHEL/Fedora (ex: <code class="text-green-400">httpd_t</code> para o Apache). Os containers apenas ganham um domínio dedicado (<code class="text-green-400">container_t</code>).</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/using_selinux/index" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: Using SELinux (RHEL 9)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 5 - SELinux MCS & Volumes (:z vs :Z)
+            {
+                title: 'Slide 5 · MCS e as flags :z / :Z',
+                body: `
+                    <p>Este é o slide mais "prático" de SELinux — provavelmente o que os alunos vão usar com mais frequência no dia a dia. Sugestão: relacione com o erro real que eles verão eventualmente: <em>"Permission denied"</em> ao montar um volume, mesmo com permissões de pasta corretas.</p>
+                    <p>Detalhe técnico para aprofundar se perguntarem: as categorias MCS (<code class="text-yellow-400">c0</code> a <code class="text-yellow-400">c1023</code>) permitem até <strong>1024 categorias</strong> combináveis em pares, gerando milhares de combinações possíveis — suficiente para isolar centenas de containers simultâneos no mesmo host sem colisão.</p>
+                    <p>Importante deixar claro: <code class="text-rh-red">:Z</code> reetiqueta a pasta para o par MCS exato do container atual, o que significa que se você rodar <em>outro</em> container apontando para a <strong>mesma</strong> pasta com <code class="text-rh-red">:Z</code> depois, o primeiro container perderá acesso (a pasta foi re-rotulada para o segundo). Por isso <code class="text-yellow-400">:Z</code> é para uso exclusivo, e <code class="text-yellow-400">:z</code> para compartilhamento intencional entre múltiplos containers.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-run.1.html#volume-v-source-volume-host-dir-container-dir-options" target="_blank" class="text-blue-400 hover:underline">Documentação: flags de volume no podman-run</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 6 - Seccomp & Capabilities
+            {
+                title: 'Slide 6 · Seccomp e Capabilities',
+                body: `
+                    <p>Boa analogia para abrir este slide: se o SELinux controla "quais arquivos/objetos você pode tocar", o Seccomp controla "quais <em>verbos</em> (chamadas de sistema) você pode nem sequer pronunciar" perante o Kernel.</p>
+                    <p>Sobre Capabilities: root tradicional no UNIX é "tudo ou nada" — o kernel moderno fatia esse poder em unidades granulares (ex: <code class="text-yellow-300">CAP_NET_BIND_SERVICE</code> só permite abrir portas &lt;1024, <code class="text-yellow-300">CAP_SYS_ADMIN</code> é quase um "root genérico" e por isso é uma das primeiras a ser removida). O Podman/Docker removem por padrão a maioria das ~40 capabilities existentes.</p>
+                    <p>A <strong>Regra de Ouro</strong> no final do slide merece destaque especial: <code class="text-white">--privileged</code> desativa simultaneamente SELinux, Seccomp e todas as restrições de Capabilities — é essencialmente "desligar a segurança do container". Vale um exemplo real de por que isso é perigoso: um container privilegiado pode montar dispositivos de bloco do host e acessar o sistema de arquivos raiz diretamente.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://man7.org/linux/man-pages/man2/seccomp.2.html" target="_blank" class="text-blue-400 hover:underline">man7: seccomp(2)</a></li>
+                            <li><a href="https://man7.org/linux/man-pages/man7/capabilities.7.html" target="_blank" class="text-blue-400 hover:underline">man7: capabilities(7)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 7 - Podman Rootless
+            {
+                title: 'Slide 7 · Rootless: o mapeamento de UIDs explicado',
+                body: `
+                    <p>Este slide fecha o gancho deixado no Módulo 1 (Pilar "Rootless First"). Sugestão de explicação passo a passo: o arquivo <code class="text-white">/etc/subuid</code> reserva uma faixa de 65536 UIDs "extras" do host exclusivamente para o usuário <code class="text-white">lucas</code> usar dentro dos seus containers.</p>
+                    <p>Ponto pedagógico chave: de dentro do container, o processo <strong>acredita</strong> ser root (UID 0), e comandos como <code class="text-green-400">whoami</code> retornam "root" — mas o Kernel, através do User Namespace, traduz transparentemente esse UID 0 para o UID real e desprivilegiado no host (ex: 1000). Se o processo escapar do container por algum bug, ele "aterrissa" no host apenas com os privilégios do usuário 1000, não com privilégios de root real.</p>
+                    <p>Sobre o <code class="text-rh-red">slirp4netns</code>: é a peça que permite ter uma stack de rede completa (NAT, DNS) totalmente em espaço de usuário, sem exigir que o processo tenha a capability <code class="text-yellow-300">CAP_NET_ADMIN</code> no host para criar interfaces de rede privilegiadas.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://man7.org/linux/man-pages/man5/subuid.5.html" target="_blank" class="text-blue-400 hover:underline">man7: subuid(5)</a></li>
+                            <li><a href="https://github.com/rootless-containers/slirp4netns" target="_blank" class="text-blue-400 hover:underline">Projeto slirp4netns (GitHub)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 8 - Interactive Kernel Inspector
+            {
+                title: 'Slide 8 · Usando o simulador interativo',
+                body: `
+                    <p>Este é um slide <strong>interativo</strong> — clique nas 3 abas (padrão, com limites, com volume SELinux) ao vivo e peça para a turma prever o que vai mudar em cada caixa antes de você clicar. É um ótimo checkpoint de fixação de todo o módulo até aqui.</p>
+                    <p>Use este slide para amarrar os 4 pilares em uma única linha do tempo: toda vez que alguém digita <code class="text-yellow-400">podman run</code>, as 4 camadas (Runtime → Namespaces → cgroups → SELinux/Seccomp) são configuradas em sequência, na mesma chamada, antes do processo da aplicação começar a executar.</p>
+                `
+            },
+            // 9 - Troubleshooting
+            {
+                title: 'Slide 9 · Ferramentas de diagnóstico no dia a dia',
+                body: `
+                    <p>Slide de referência rápida — vale sugerir que os alunos salvem/anotem estes comandos, pois são os primeiros passos de troubleshooting em qualquer ambiente RHEL corporativo com containers.</p>
+                    <p><code class="text-yellow-300">sealert</code> é particularmente valioso para principiantes: ele não apenas mostra o erro do SELinux, mas sugere o comando exato de correção (geralmente algo como <code class="text-yellow-300">semanage fcontext</code> + <code class="text-yellow-300">restorecon</code>), reduzindo a curva de aprendizado.</p>
+                    <p>Sobre <code class="text-blue-300">memory.events</code>: o campo <code class="text-blue-300">oom_kill</code> dentro desse arquivo mostra quantas vezes o OOM Killer atuou naquele cgroup — extremamente útil para diagnosticar containers que reiniciam sozinhos sem mensagem de erro clara na aplicação.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/using_selinux/troubleshooting-problems-related-to-selinux_using-selinux" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: Troubleshooting SELinux</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 10 - Matriz de Conclusão
+            {
+                title: 'Slide 10 · Consolidando os 4 pilares',
+                body: `
+                    <p>Use esta tabela como um "quadro-resumo" para revisão antes de qualquer avaliação. Sugestão: cubra a coluna "Papel do Podman" e peça para a turma completar oralmente, célula por célula.</p>
+                    <p>Feche com o teaser do Módulo 3 destacado no slide: os mesmos 4 pilares que acabamos de estudar em <strong>uma única máquina</strong> são replicados pelo Kubernetes/OpenShift em <strong>cada nó</strong> de um cluster com centenas ou milhares de servidores — não há mágica nova, apenas escala.</p>
+                `
+            },
+            // 11 - Encerramento
+            {
+                title: 'Slide 11 · Encerramento do Módulo 2',
+                body: `
+                    <p>Tarefa sugerida para casa: pedir para os alunos rodarem <code class="text-white">lsns</code> e <code class="text-white">podman stats</code> em algum container que já rodaram no Módulo 1, e trazerem para a próxima aula um print de <code class="text-white">ls -laZ</code> em algum diretório do sistema mostrando os contextos SELinux.</p>
+                    <p>Reforce que este foi o módulo mais "teórico/kernel" dos três — o Módulo 3 volta a ser mais arquitetural e conceitual, sobre como escalar tudo isso para produção.</p>
+                `
+            }
+        ];
+
+        function showPresenterNotes() {
+            const note = presenterNotes[currentSlide] || {
+                title: 'Notas do Apresentador',
+                body: '<p>Sem notas adicionais cadastradas para este slide.</p>'
+            };
+            document.getElementById('notes-modal-title').innerText = note.title;
+            document.getElementById('notes-modal-body').innerHTML = note.body;
+            document.getElementById('notes-modal').classList.remove('hidden');
         }
 
         // Initialize UI on load
