@@ -330,7 +330,7 @@
                     </div>
                     <div class="bg-green-950/20 border border-green-900/50 p-2.5 rounded text-xs">
                         <strong class="text-green-400">Restricted</strong>
-                        <span class="text-gray-300"> — exige non-root, seccomp e capabilities dropadas. É o padrão que o OpenShift aplica por Project (Módulo 3).</span>
+                        <span class="text-gray-300"> — exige non-root, seccomp e capabilities descartadas. É o padrão que o OpenShift aplica por Project (Módulo 3).</span>
                     </div>
                 </div>
             </div>
@@ -453,11 +453,11 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-2 text-xs">
-                    <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-gray-400">None</span><span class="text-gray-500">não loga nada</span></div>
+                    <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-gray-400">None</span><span class="text-gray-500">não registra nada</span></div>
                     <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-blue-400">Metadata</span><span class="text-gray-400">só usuário, verbo, recurso — usar para Secrets</span></div>
                     <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-amber-400">Request</span><span class="text-gray-400">+ corpo da requisição</span></div>
                     <div class="bg-rh-card border border-rh-border p-2 rounded flex justify-between"><span class="text-green-400">RequestResponse</span><span class="text-gray-400">+ resposta completa — máximo detalhe</span></div>
-                    <p class="text-[11px] text-gray-500 italic pt-1">⚠️ Logar Secrets em RequestResponse expõe o valor base64 no próprio log de auditoria.</p>
+                    <p class="text-[11px] text-gray-500 italic pt-1">⚠️ Registrar Secrets em RequestResponse expõe o valor base64 no próprio log de auditoria.</p>
                 </div>
 
                 <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
