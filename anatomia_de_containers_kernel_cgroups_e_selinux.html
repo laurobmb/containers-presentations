@@ -70,10 +70,10 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col justify-between select-none bg-rh-dark">
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-rh-dark">
 
     <!-- Top Navigation Bar -->
-    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
         <div class="flex items-center space-x-3">
             <!-- Red Hat Fedora/RHEL Inspired Logo Emblem -->
             <div class="w-8 h-8 bg-rh-red rounded flex items-center justify-center font-heading font-black text-white text-lg tracking-tighter shadow-md">
@@ -221,7 +221,7 @@
                             <span>bash</span>
                         </div>
                         <p class="text-gray-400"># Inspecionando os namespaces de um container rodando no Podman:</p>
-                        <p class="text-yellow-400 mt-1">$ podman run -d --name web docker.io/library/nginx</p>
+                        <p class="text-yellow-400 mt-1">$ podman run -it --rm --name web docker.io/library/nginx</p>
                         <p class="text-gray-500">c982d61a5e4b...</p>
                         
                         <p class="text-yellow-400 mt-2">$ sudo lsns -p $(podman inspect -f '{{.State.Pid}}' web)</p>
@@ -557,7 +557,7 @@ user       1   12458 root   nginx: master process
             <!-- Code Simulation Box -->
             <div class="bg-black border border-rh-border p-3.5 rounded-lg font-mono text-xs">
                 <span class="text-gray-500 text-[11px] block mb-1">// Comando executado:</span>
-                <span class="text-yellow-400 text-sm block" id="interactive-cmd">podman run -d --name app registry.access.redhat.com/ubi9/ubi-micro</span>
+                <span class="text-yellow-400 text-sm block" id="interactive-cmd">podman run -it --rm --name app registry.access.redhat.com/ubi9/ubi-micro</span>
                 <div class="mt-3 pt-2 border-t border-rh-border/60 text-green-400 text-[11px]" id="interactive-result">
                     ✓ Processo encapsulado com sucesso nos 4 subsistemas do Kernel.
                 </div>
@@ -711,7 +711,7 @@ user       1   12458 root   nginx: master process
     </main>
 
     <!-- Bottom Presentation Control Bar -->
-    <footer class="h-14 border-t border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+    <footer class="h-14 border-t border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
         <div class="flex items-center space-x-2">
             <button onclick="prevSlide()" class="p-2 rounded bg-rh-card hover:bg-rh-border text-gray-200 transition border border-rh-border" title="Anterior (Seta Esquerda)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -869,7 +869,7 @@ user       1   12458 root   nginx: master process
 
             if (type === 'run') {
                 btnRun.className = 'scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-rh-red text-white';
-                cmd.innerText = 'podman run -d --name app registry.access.redhat.com/ubi9/ubi-micro';
+                cmd.innerText = 'podman run -it --rm --name app registry.access.redhat.com/ubi9/ubi-micro';
                 result.innerHTML = '✓ Processo criado com isolamento padrão de Namespaces + SELinux container_t.';
                 boxCli.innerText = 'Podman cria a especificação OCI em config.json e invoca crun.';
                 boxNs.innerText = 'Cria 7 namespaces novos (mnt, pid, net, user, ipc, uts, cgroup).';
@@ -877,7 +877,7 @@ user       1   12458 root   nginx: master process
                 boxSec.innerText = 'Atribui tipo container_t e gera categoria MCS aleatória (ex: s0:c20,c41).';
             } else if (type === 'limit') {
                 btnLimit.className = 'scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-blue-600 text-white';
-                cmd.innerText = 'podman run -d --cpus 1.5 -m 512m --pids-limit 100 registry.access.redhat.com/ubi9/ubi-micro';
+                cmd.innerText = 'podman run -it --rm --cpus 1.5 -m 512m --pids-limit 100 registry.access.redhat.com/ubi9/ubi-micro';
                 result.innerHTML = '✓ O Kernel aplicará throttles de CPU CFS, limite rígido de memória e proteção anti-fork bomb.';
                 boxCli.innerText = 'crun recebe os limites de recursos dentro do nó de configuração OCI.';
                 boxNs.innerText = 'Namespaces padrões criados sem alterações adicionais.';
@@ -885,7 +885,7 @@ user       1   12458 root   nginx: master process
                 boxSec.innerText = 'SELinux container_t e Seccomp aplicados normalmente.';
             } else if (type === 'volume') {
                 btnVolume.className = 'scenario-btn px-3 py-1.5 rounded text-xs font-mono font-bold bg-green-600 text-white';
-                cmd.innerText = 'podman run -d -v /var/data:/data:Z docker.io/library/postgres';
+                cmd.innerText = 'podman run -it --rm -v /var/data:/data:Z docker.io/library/postgres';
                 result.innerHTML = '✓ O diretório do host é relabeled no disco com o par MCS exato do container atual.';
                 boxCli.innerText = 'Podman executa a syscall setxattr() na pasta /var/data antes de iniciar.';
                 boxNs.innerText = 'Mount namespace monta o volume relabeled em /data dentro do container.';

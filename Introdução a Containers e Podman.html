@@ -67,10 +67,10 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col justify-between select-none bg-rh-dark">
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-rh-dark">
 
     <!-- Header Navigation -->
-    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
         <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-rh-red rounded flex items-center justify-center font-heading font-black text-white text-lg tracking-tighter shadow-md">
                 RH
@@ -367,7 +367,7 @@
                 <!-- Interactive Code Block 1 -->
                 <div class="bg-rh-code border border-rh-border rounded-lg p-3.5 font-mono text-xs space-y-2">
                     <span class="text-gray-500 text-[11px] block">// 1. Baixar e Executar um Servidor Web em Background</span>
-                    <p class="text-yellow-400">$ podman run -d --name meu-web -p 8080:80 docker.io/library/nginx</p>
+                    <p class="text-yellow-400">$ podman run -it --rm --name meu-web -p 8080:80 docker.io/library/nginx</p>
                     <p class="text-gray-500 text-[11px]">// 2. Listar containers em execução</p>
                     <p class="text-yellow-400">$ podman ps</p>
                     <div class="bg-black p-2 rounded text-[10px] text-gray-300">
@@ -419,10 +419,10 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
                     <p class="text-yellow-400">$ podman pod create --name meu-pod -p 8080:80</p>
                     
                     <span class="text-gray-500 text-[11px] block mt-2">// Passo B: Adicionar container de aplicação no Pod (imagem construída localmente)</span>
-                    <p class="text-yellow-400">$ podman run -d --pod meu-pod --name app localhost/meu-app-python</p>
+                    <p class="text-yellow-400">$ podman run -it --rm --pod meu-pod --name app localhost/meu-app-python</p>
                     
                     <span class="text-gray-500 text-[11px] block mt-2">// Passo C: Adicionar NGINX no MESMO Pod</span>
-                    <p class="text-yellow-400">$ podman run -d --pod meu-pod --name proxy docker.io/library/nginx</p>
+                    <p class="text-yellow-400">$ podman run -it --rm --pod meu-pod --name proxy docker.io/library/nginx</p>
                 </div>
             </div>
         </section>
@@ -584,7 +584,7 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
     </main>
 
     <!-- Presentation Controls Footer -->
-    <footer class="h-14 border-t border-rh-border bg-rh-black px-6 flex items-center justify-between z-20">
+    <footer class="h-14 border-t border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
         <div class="flex items-center space-x-2">
             <button onclick="prevSlide()" class="p-2 rounded bg-rh-card hover:bg-rh-border text-gray-200 transition border border-rh-border" title="Anterior">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -615,7 +615,7 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
             
             <div class="space-y-2 text-xs font-mono text-gray-300">
                 <div class="bg-rh-card p-2 rounded border border-rh-border">
-                    <strong class="text-rh-red">podman run -d --name app -p 80:80 imagem</strong>
+                    <strong class="text-rh-red">podman run -it --rm --name app -p 80:80 imagem</strong>
                     <p class="text-gray-400 text-[11px]">Roda container em segundo plano mapeando porta.</p>
                 </div>
                 <div class="bg-rh-card p-2 rounded border border-rh-border">
