@@ -65,6 +65,19 @@
             background: #444;
             border-radius: 3px;
         }
+        .terminal-cursor {
+            display: inline-block;
+            width: 0.5em;
+            margin-left: 2px;
+            background: #EE0000;
+            animation: term-blink 0.9s step-end infinite;
+        }
+        @keyframes term-blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        #build-terminal::-webkit-scrollbar { width: 6px; }
+        #build-terminal::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-rh-dark">
@@ -398,7 +411,97 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
             </div>
         </section>
 
-        <!-- ==================== SLIDE 7: O Conceito de Pods ==================== -->
+        <!-- ==================== SLIDE 7: Demonstração Animada do Ciclo de Vida ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">Demonstração Animada • Assista ao Vivo</div>
+                <h2 class="text-3xl font-black text-white">Veja o Ciclo Completo em Ação</h2>
+                <p class="text-gray-400 text-sm mt-1">Os mesmos comandos do slide anterior, agora digitados e executados em tempo real — do pull até entrar dentro do container.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Explicação das etapas -->
+                <div class="md:col-span-1 space-y-2">
+                    <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                        <span class="text-xs font-mono text-rh-red font-bold">1. PULL</span>
+                        <p class="text-xs text-gray-300 mt-0.5">Baixa as camadas da imagem de um registro remoto.</p>
+                    </div>
+                    <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                        <span class="text-xs font-mono text-blue-400 font-bold">2. RUN</span>
+                        <p class="text-xs text-gray-300 mt-0.5">Cria e inicia o container em background a partir da imagem.</p>
+                    </div>
+                    <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                        <span class="text-xs font-mono text-yellow-400 font-bold">3. PS</span>
+                        <p class="text-xs text-gray-300 mt-0.5">Confirma que o container está de fato em execução.</p>
+                    </div>
+                    <div class="bg-rh-card border border-rh-border p-3 rounded-lg">
+                        <span class="text-xs font-mono text-green-400 font-bold">4. EXEC</span>
+                        <p class="text-xs text-gray-300 mt-0.5">Entra no container rodando, como um SSH local — o prompt muda para <code class="text-green-400">#</code>.</p>
+                    </div>
+                </div>
+
+                <!-- Terminal animado -->
+                <div class="md:col-span-2 bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~</span>
+                    </div>
+                    <div id="cli-demo-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[260px] overflow-y-auto"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 8: Build de Imagens (Containerfile) ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">Hands-On • Criando Sua Própria Imagem</div>
+                <h2 class="text-3xl font-black text-white">Build: Do Código-Fonte à Imagem OCI</h2>
+                <p class="text-gray-400 text-sm mt-1">Até agora rodamos imagens prontas (NGINX). Mas de onde elas vêm? Tudo começa em um simples arquivo de texto: o <code class="text-purple-400">Containerfile</code>.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Containerfile -->
+                <div class="bg-rh-card border border-rh-border p-4 rounded-lg space-y-2.5">
+                    <h3 class="font-bold text-white text-sm flex items-center justify-between">
+                        <span>O Containerfile</span>
+                        <span class="text-xs font-mono text-purple-400 bg-purple-950/50 px-2 py-0.5 rounded">Compatível com Dockerfile</span>
+                    </h3>
+                    <div class="bg-black p-3 rounded font-mono text-[11px] text-gray-300 border border-rh-border space-y-0.5 leading-relaxed">
+                        <p><span class="text-blue-400">FROM</span> registry.access.redhat.com/ubi9/python-312</p>
+                        <p><span class="text-blue-400">WORKDIR</span> /app</p>
+                        <p><span class="text-blue-400">COPY</span> app.py .</p>
+                        <p><span class="text-blue-400">RUN</span> pip install flask</p>
+                        <p><span class="text-blue-400">EXPOSE</span> 5000</p>
+                        <p><span class="text-blue-400">CMD</span> ["python", "app.py"]</p>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Cada instrução gera uma nova <strong>camada (layer)</strong> imutável e cacheável — o mesmo conceito de OCI Image Spec visto anteriormente. Ao alterar apenas o <code class="text-purple-300">app.py</code>, o Podman reaproveita o cache de todas as camadas anteriores.
+                    </p>
+                    <div class="bg-black/60 p-2 rounded font-mono text-[11px] text-yellow-300 border border-rh-border">
+                        $ podman build -t localhost/meu-app-python .
+                    </div>
+                </div>
+
+                <!-- Terminal animado do build -->
+                <div class="bg-black border border-rh-border rounded-lg overflow-hidden flex flex-col">
+                    <div class="flex items-center space-x-2 px-3 py-2 bg-rh-code border-b border-rh-border shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-mono text-gray-500 pl-1">terminal@rhel-host: ~/meu-app-python</span>
+                    </div>
+                    <div id="build-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[230px] overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div class="bg-rh-code border border-rh-border p-3 rounded-lg text-xs font-mono text-gray-300">
+                🛠️ <strong>Ligando os pontos:</strong> a imagem <code class="text-yellow-400">localhost/meu-app-python</code> usada no próximo slide (Pods) é exatamente o resultado deste build — construída localmente, por isso o prefixo <code class="text-yellow-400">localhost/</code> em vez de um registro remoto.
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 9: O Conceito de Pods ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Recurso Exclusivo do Podman</div>
@@ -433,7 +536,7 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
             </div>
         </section>
 
-        <!-- ==================== SLIDE 8: Podman vs Docker ==================== -->
+        <!-- ==================== SLIDE 10: Podman vs Docker ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">Matriz Comparativa</div>
@@ -481,7 +584,7 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
             </div>
         </section>
 
-        <!-- ==================== SLIDE 9: Pontes para Nuvem ==================== -->
+        <!-- ==================== SLIDE 11: Pontes para Nuvem ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-yellow-400 font-bold uppercase tracking-wider">Do Terminal para o Kubernetes</div>
@@ -520,7 +623,7 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
             </div>
         </section>
 
-        <!-- ==================== SLIDE 10: Resumo e Conclusão ==================== -->
+        <!-- ==================== SLIDE 12: Resumo e Conclusão ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-5">
             <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Resumo do Módulo 1</div>
             <h2 class="text-3xl md:text-5xl font-black text-white">Pronto para o Próximo Nível</h2>
@@ -696,6 +799,244 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
                 dot.onclick = () => goToSlide(i);
                 dotsContainer.appendChild(dot);
             }
+
+            // Slide 7 (Demonstração Animada): inicia/reinicia a animação do terminal ao entrar/saír
+            if (currentSlide === 7) {
+                startCliDemoAnimation();
+            } else {
+                stopCliDemoAnimation();
+            }
+
+            // Slide 8 (Build de Imagens): inicia/reinicia a animação do terminal ao entrar/saír
+            if (currentSlide === 8) {
+                startBuildAnimation();
+            } else {
+                stopBuildAnimation();
+            }
+        }
+
+        // ==================== Animação do Terminal de Demonstração (Slide 7) ====================
+        let cliDemoAnimGen = 0;
+
+        function stopCliDemoAnimation() {
+            cliDemoAnimGen++;
+            const el = document.getElementById('cli-demo-terminal');
+            if (el) el.innerHTML = '';
+        }
+
+        function startCliDemoAnimation() {
+            cliDemoAnimGen++;
+            const gen = cliDemoAnimGen;
+            const el = document.getElementById('cli-demo-terminal');
+            if (!el) return;
+            el.innerHTML = '';
+
+            const script = [
+                { prompt: '$', text: 'podman pull docker.io/library/nginx', type: true },
+                { text: 'Trying to pull docker.io/library/nginx:latest...', color: 'text-gray-400' },
+                { text: 'Getting image source signatures', color: 'text-gray-400' },
+                { text: 'Copying blob 4f4fb700ef54 done', color: 'text-gray-400' },
+                { text: 'Copying config bdc37b446e3d done', color: 'text-gray-400' },
+                { text: 'Writing manifest to image destination', color: 'text-gray-400' },
+                { text: '2f6b1cf7b3a1c9e8d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman run -dt --name web -p 8080:80 docker.io/library/nginx', type: true },
+                { text: 'a81f32c91b8a4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman ps', type: true },
+                { text: 'CONTAINER ID  IMAGE                    STATUS         PORTS', color: 'text-gray-400' },
+                { text: 'a81f32c91b8a  docker.io/library/nginx  Up 2 seconds   0.0.0.0:8080->80/tcp', color: 'text-green-400' },
+                { prompt: '$', text: 'podman exec -it web sh', type: true },
+                { prompt: '#', text: 'echo "Rodando dentro do container!"', type: true },
+                { text: 'Rodando dentro do container!', color: 'text-white' },
+                { prompt: '#', text: 'exit', type: true },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ];
+
+            let i = 0;
+
+            function scrollDown() {
+                el.scrollTop = el.scrollHeight;
+            }
+
+            function makeLine() {
+                const line = document.createElement('div');
+                line.className = 'flex flex-wrap items-baseline';
+                return line;
+            }
+
+            function typeLine(step, done) {
+                const line = makeLine();
+                const promptSpan = document.createElement('span');
+                promptSpan.className = 'text-green-400 font-bold pr-2 shrink-0';
+                promptSpan.textContent = step.prompt;
+                const textSpan = document.createElement('span');
+                textSpan.className = 'text-yellow-300 break-all';
+                const cursor = document.createElement('span');
+                cursor.className = 'terminal-cursor';
+                line.appendChild(promptSpan);
+                line.appendChild(textSpan);
+                line.appendChild(cursor);
+                el.appendChild(line);
+
+                let charIdx = 0;
+                (function typeChar() {
+                    if (gen !== cliDemoAnimGen) return;
+                    if (charIdx <= step.text.length) {
+                        textSpan.textContent = step.text.slice(0, charIdx);
+                        charIdx++;
+                        scrollDown();
+                        setTimeout(typeChar, 22 + Math.random() * 35);
+                    } else {
+                        if (step.idleCursor) {
+                            setTimeout(() => {
+                                if (gen !== cliDemoAnimGen) return;
+                                el.innerHTML = '';
+                                i = 0;
+                                runStep();
+                            }, 2600);
+                            return;
+                        }
+                        cursor.remove();
+                        setTimeout(done, 280);
+                    }
+                })();
+            }
+
+            function printLine(step, done) {
+                const line = makeLine();
+                line.className += ' whitespace-pre-wrap break-all ' + (step.color || 'text-gray-400');
+                line.textContent = step.text;
+                el.appendChild(line);
+                scrollDown();
+                setTimeout(done, 110);
+            }
+
+            function runStep() {
+                if (gen !== cliDemoAnimGen) return;
+                if (i >= script.length) return;
+                const step = script[i];
+                i++;
+                if (step.type) {
+                    typeLine(step, runStep);
+                } else {
+                    printLine(step, runStep);
+                }
+            }
+
+            runStep();
+        }
+
+        // ==================== Animação do Terminal de Build (Slide 8) ====================
+        let buildAnimGen = 0;
+
+        function stopBuildAnimation() {
+            buildAnimGen++;
+            const el = document.getElementById('build-terminal');
+            if (el) el.innerHTML = '';
+        }
+
+        function startBuildAnimation() {
+            buildAnimGen++;
+            const gen = buildAnimGen;
+            const el = document.getElementById('build-terminal');
+            if (!el) return;
+            el.innerHTML = '';
+
+            const script = [
+                { prompt: '$', text: 'podman build -t localhost/meu-app-python .', type: true },
+                { text: 'STEP 1/6: FROM registry.access.redhat.com/ubi9/python-312', color: 'text-blue-300' },
+                { text: 'STEP 2/6: WORKDIR /app', color: 'text-blue-300' },
+                { text: '--> Using cache', color: 'text-gray-500' },
+                { text: 'STEP 3/6: COPY app.py .', color: 'text-blue-300' },
+                { text: '--> a1c9e4f6b8d2', color: 'text-gray-500' },
+                { text: 'STEP 4/6: RUN pip install flask', color: 'text-blue-300' },
+                { text: 'Collecting flask', color: 'text-gray-400' },
+                { text: 'Installing collected packages: flask', color: 'text-gray-400' },
+                { text: 'Successfully installed flask-3.0.3', color: 'text-green-400' },
+                { text: '--> f6e5d4c3b2a1', color: 'text-gray-500' },
+                { text: 'STEP 5/6: EXPOSE 5000', color: 'text-blue-300' },
+                { text: 'STEP 6/6: CMD ["python", "app.py"]', color: 'text-blue-300' },
+                { text: 'COMMIT localhost/meu-app-python', color: 'text-blue-300' },
+                { text: '--> 9c8b7a6f5e4d', color: 'text-gray-500' },
+                { text: 'Successfully tagged localhost/meu-app-python:latest', color: 'text-green-400' },
+                { text: '9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4938271605f4e3d2c1b0a9f8e7d6c5b4a', color: 'text-gray-500' },
+                { prompt: '$', text: 'podman images', type: true },
+                { text: 'REPOSITORY                 TAG      IMAGE ID       SIZE', color: 'text-gray-400' },
+                { text: 'localhost/meu-app-python   latest   9c8b7a6f5e4d   187 MB', color: 'text-green-400' },
+                { prompt: '$', text: '', type: true, idleCursor: true }
+            ];
+
+            let i = 0;
+
+            function scrollDown() {
+                el.scrollTop = el.scrollHeight;
+            }
+
+            function makeLine() {
+                const line = document.createElement('div');
+                line.className = 'flex flex-wrap items-baseline';
+                return line;
+            }
+
+            function typeLine(step, done) {
+                const line = makeLine();
+                const promptSpan = document.createElement('span');
+                promptSpan.className = 'text-green-400 font-bold pr-2 shrink-0';
+                promptSpan.textContent = step.prompt;
+                const textSpan = document.createElement('span');
+                textSpan.className = 'text-yellow-300 break-all';
+                const cursor = document.createElement('span');
+                cursor.className = 'terminal-cursor';
+                line.appendChild(promptSpan);
+                line.appendChild(textSpan);
+                line.appendChild(cursor);
+                el.appendChild(line);
+
+                let charIdx = 0;
+                (function typeChar() {
+                    if (gen !== buildAnimGen) return;
+                    if (charIdx <= step.text.length) {
+                        textSpan.textContent = step.text.slice(0, charIdx);
+                        charIdx++;
+                        scrollDown();
+                        setTimeout(typeChar, 22 + Math.random() * 35);
+                    } else {
+                        if (step.idleCursor) {
+                            setTimeout(() => {
+                                if (gen !== buildAnimGen) return;
+                                el.innerHTML = '';
+                                i = 0;
+                                runStep();
+                            }, 2600);
+                            return;
+                        }
+                        cursor.remove();
+                        setTimeout(done, 280);
+                    }
+                })();
+            }
+
+            function printLine(step, done) {
+                const line = makeLine();
+                line.className += ' whitespace-pre-wrap break-all ' + (step.color || 'text-gray-400');
+                line.textContent = step.text;
+                el.appendChild(line);
+                scrollDown();
+                setTimeout(done, 110);
+            }
+
+            function runStep() {
+                if (gen !== buildAnimGen) return;
+                if (i >= script.length) return;
+                const step = script[i];
+                i++;
+                if (step.type) {
+                    typeLine(step, runStep);
+                } else {
+                    printLine(step, runStep);
+                }
+            }
+
+            runStep();
         }
 
         function nextSlide() {
@@ -848,9 +1189,43 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
                     </div>
                 `
             },
-            // 7 - Conceito de Pods
+            // 7 - Demonstração Animada do Ciclo de Vida
             {
-                title: 'Slide 7 · Pods no Podman = Pods no Kubernetes',
+                title: 'Slide 7 · Reforço visual do ciclo de vida',
+                body: `
+                    <p>Este slide não introduz comandos novos — ele <strong>reforça</strong> os cinco comandos do slide anterior através de uma animação de terminal que roda em loop automaticamente. Use-o como "resumo visual" antes de avançar para o build de imagens.</p>
+                    <p>Ponto pedagógico: chame atenção para a mudança de <code class="text-green-400">$</code> para <code class="text-green-400">#</code> no prompt após o <code class="text-yellow-300">podman exec -it web sh</code> — é um sinal visual clássico em terminais Unix de que você está <strong>dentro</strong> de outro ambiente de execução (nesse caso, dentro do Namespace do container), e não mais no shell do host.</p>
+                    <p>Se a turma perguntar por que usamos <code class="text-yellow-300">sh</code> em vez de <code class="text-yellow-300">bash</code> aqui (diferente do slide anterior): a imagem oficial do NGINX é baseada em Debian slim e não garante <code class="text-yellow-300">bash</code> em todas as variantes — <code class="text-yellow-300">sh</code> é o shell POSIX universal, presente em praticamente qualquer imagem, até as mais minimalistas.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-exec.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-exec</a></li>
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-pull.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-pull</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 8 - Build de Imagens (Containerfile)
+            {
+                title: 'Slide 8 · Build: fechando o ciclo de vida da imagem',
+                body: `
+                    <p>Este slide preenche uma lacuna importante: até aqui só rodamos imagens que <strong>outra pessoa</strong> construiu (NGINX). Aqui mostramos de onde as imagens realmente vêm — e prepara o terreno para o próximo slide, que usa <code class="text-yellow-400">localhost/meu-app-python</code> como se ela já existisse.</p>
+                    <p>O terminal à direita é animado e roda em loop automaticamente enquanto o slide estiver aberto — não é preciso clicar em nada. Aproveite esse tempo "morto" da animação para explicar verbalmente o conceito de <strong>camadas (layers)</strong>: cada instrução do Containerfile (<code class="text-blue-300">FROM</code>, <code class="text-blue-300">WORKDIR</code>, <code class="text-blue-300">COPY</code>, <code class="text-blue-300">RUN</code>...) gera uma camada nova e imutável, empilhada sobre a anterior — exatamente o mesmo conceito de <em>OCI Image Spec</em> do slide 3.</p>
+                    <p>Ponto pedagógico de destaque: <code class="text-yellow-300">--> Using cache</code> na segunda linha do build simulado é real e importante — se você rebuildar sem alterar o Containerfile nem os arquivos copiados, o Podman reaproveita camadas já construídas anteriormente, tornando builds subsequentes muito mais rápidos. Isso também explica por que a <strong>ordem</strong> das instruções no Containerfile importa: instruções que mudam com menos frequência (como instalar dependências) devem vir antes das que mudam com mais frequência (como copiar o código-fonte da aplicação).</p>
+                    <p>Sobre a imagem base <code class="text-white">registry.access.redhat.com/ubi9/python-312</code>: são as <strong>Red Hat Universal Base Images (UBI)</strong> — imagens oficiais, gratuitas, redistribuíveis e com suporte de segurança, ótima alternativa corporativa a imagens genéricas do Docker Hub.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-build.1.html" target="_blank" class="text-blue-400 hover:underline">Documentação: podman-build</a></li>
+                            <li><a href="https://github.com/containers/common/blob/main/docs/Containerfile.5.md" target="_blank" class="text-blue-400 hover:underline">Referência de sintaxe do Containerfile</a></li>
+                            <li><a href="https://catalog.redhat.com/software/base-images" target="_blank" class="text-blue-400 hover:underline">Red Hat Universal Base Images (UBI)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 9 - Conceito de Pods
+            {
+                title: 'Slide 9 · Pods no Podman = Pods no Kubernetes',
                 body: `
                     <p>O ponto pedagógico mais importante deste slide: o conceito de Pod aqui é <strong>semanticamente idêntico</strong> ao Pod do Kubernetes — mesmo modelo de "um IP por grupo de containers", mesmo container de infraestrutura reservando rede (no Kubernetes chamado de <em>pause container</em>).</p>
                     <p>Isso não é coincidência: os mesmos engenheiros que constroem o Podman na Red Hat também contribuem para o Kubernetes/OpenShift, e desenharam a ferramenta deliberadamente para que desenvolvedores pudessem prototipar localmente exatamente a mesma topologia que rodará em produção.</p>
@@ -864,9 +1239,9 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
                     </div>
                 `
             },
-            // 8 - Podman vs Docker
+            // 10 - Podman vs Docker
             {
-                title: 'Slide 8 · Cuidado com a "guerra de religião"',
+                title: 'Slide 10 · Cuidado com a "guerra de religião"',
                 body: `
                     <p>Enquadre esta tabela como uma comparação de <strong>posturas arquiteturais padrão</strong>, não como "Docker é ruim". O Docker Desktop ainda domina em muitas empresas e times, e o alias <code class="text-yellow-400">alias docker=podman</code> funciona para a grande maioria dos comandos do dia a dia justamente por essa compatibilidade de CLI.</p>
                     <p>Detalhe honesto para mencionar se um aluno perguntar: o Docker moderno também oferece um <em>modo rootless</em> (desde a versão 20.10), mas ele é opcional e requer configuração extra — no Podman o rootless é o comportamento padrão e nativo desde o primeiro dia do projeto.</p>
@@ -878,9 +1253,9 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
                     </div>
                 `
             },
-            // 9 - Pontes para Nuvem
+            // 11 - Pontes para Nuvem
             {
-                title: 'Slide 9 · O "aha moment" da aula: a ponte para o Módulo 3',
+                title: 'Slide 11 · O "aha moment" da aula: a ponte para o Módulo 3',
                 body: `
                     <p>Este é o slide mais importante para conectar os 3 módulos. Enfatize que o YAML gerado por <code class="text-yellow-300">podman kube generate</code> é um manifesto Kubernetes <strong>real e válido</strong> (<code class="text-yellow-300">apiVersion: v1, kind: Pod</code>) — pode ser aplicado sem nenhuma alteração com <code class="text-yellow-300">kubectl apply -f pod.yaml</code> ou <code class="text-yellow-300">oc apply -f pod.yaml</code> em um cluster real.</p>
                     <p>Sugestão forte: demonstre isso ao vivo (gerar o YAML, abrir o arquivo, mostrar a estrutura) — é o momento que mais costuma gerar o "clique" na turma sobre por que aprender Podman antes de Kubernetes faz sentido pedagógico.</p>
@@ -893,17 +1268,17 @@ a81f32c91b8a  docker.io/library/n... nginx...  Up 5 seconds   0.0.0.0:8080->80/t
                     </div>
                 `
             },
-            // 10 - Resumo e Conclusão
+            // 12 - Resumo e Conclusão
             {
-                title: 'Slide 10 · Fechando o Módulo 1',
+                title: 'Slide 12 · Fechando o Módulo 1',
                 body: `
                     <p>Momento ideal para uma checagem rápida de aprendizado — pergunte oralmente à turma "por que o Podman não usa daemon?" ou "o que acontece dentro de um Pod?" antes de seguir.</p>
                     <p>Gancho para o próximo módulo: hoje vimos <strong>o quê</strong> o Podman faz (comandos, pods, compatibilidade OCI). Na próxima aula vamos abrir o capô e ver <strong>como</strong> o Linux Kernel de fato implementa esse isolamento por baixo dos panos (Namespaces, cgroups v2 e SELinux).</p>
                 `
             },
-            // 11 - Encerramento
+            // 13 - Encerramento
             {
-                title: 'Slide 11 · Encerramento e Tarefa de Casa',
+                title: 'Slide 13 · Encerramento e Tarefa de Casa',
                 body: `
                     <p>Sugestão de tarefa prática para antes da próxima aula: instalar o Podman localmente (nativo em Fedora/RHEL, ou via WSL2 no Windows) e reproduzir os 5 comandos do slide de CLI na prática.</p>
                     <p>Vale mencionar o <strong>Red Hat Developer Program</strong>, que oferece assinaturas gratuitas do RHEL para uso individual/educacional — útil para quem quiser testar em um ambiente idêntico ao de produção corporativa.</p>
