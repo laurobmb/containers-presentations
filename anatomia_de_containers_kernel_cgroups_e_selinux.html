@@ -84,12 +84,12 @@
 <body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-rh-dark">
 
     <!-- Top Navigation Bar -->
-    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
+    <header class="h-16 shrink-0 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
         <div class="flex items-center space-x-3">
             <div class="w-8 h-8 flex items-center justify-center">
                 <img src="assets/rh-hat-icon.png" alt="Red Hat" class="w-full h-full object-contain drop-shadow-md">
             </div>
-            <div>
+            <div class="hidden md:block">
                 <span class="text-xs uppercase tracking-widest text-rh-red font-bold block">Módulo 2 de 4 • Deep Dive Técnico</span>
                 <h1 class="text-sm font-heading font-bold text-white tracking-wide">Linux Kernel, cgroups v2, SELinux & Podman</h1>
             </div>
@@ -100,7 +100,7 @@
             <span class="text-gray-400">SLIDE</span>
             <span id="slide-number" class="text-rh-red font-bold text-sm">01</span>
             <span class="text-gray-500">/</span>
-            <span id="total-slides" class="text-gray-400">10</span>
+            <span id="total-slides" class="text-gray-400">12</span>
         </div>
 
         <!-- Header Actions -->
@@ -250,7 +250,7 @@
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Pilar 2 • Gestão e Limitação de Recursos</div>
-                <h2 class="text-3xl font-black text-white">cgroups v2: O Guardião Contra Starvation e OOM</h2>
+                <h2 class="text-3xl font-black text-white">cgroups v2: limites, prioridades e controle de recursos</h2>
                 <p class="text-gray-400 text-sm mt-1">Enquanto Namespaces isolam a <em>visão</em>, os Control Groups regulam e contam o consumo de hardware via pseudo-filesystem <code class="text-blue-400">/sys/fs/cgroup/</code>.</p>
             </div>
 
@@ -262,11 +262,11 @@
                         <span class="text-xs font-mono bg-blue-950 px-1.5 py-0.5 rounded border border-blue-800">memory.max</span>
                     </div>
                     <p class="text-xs text-gray-300 leading-relaxed">
-                        Define limites rígidos (*hard limit*). Ao ultrapassar <code class="text-blue-300">memory.max</code>, o kernel aciona o <strong>Out-Of-Memory Killer (OOM)</strong> eliminando o processo filho ou o container antes de comprometer o host.
+                        <code class="text-blue-300">memory.max</code> impõe um limite rígido: se o kernel não recuperar memória suficiente, pode ocorrer <strong>OOM (Out of Memory)</strong> no cgroup. <code class="text-blue-300">memory.high</code> provoca recuperação e contenção, sem acionar diretamente o OOM Killer.
                     </p>
                     <div class="bg-rh-black p-2 rounded text-[11px] font-mono text-gray-400 border border-rh-border">
                         podman run -m 512m ...<br>
-                        ↳ <span class="text-green-400">echo 536870912 > memory.max</span>
+                        ↳ <span class="text-green-400">memory.max = 536870912</span>
                     </div>
                 </div>
 
@@ -277,11 +277,11 @@
                         <span class="text-xs font-mono bg-yellow-950 px-1.5 py-0.5 rounded border border-yellow-800">cpu.max</span>
                     </div>
                     <p class="text-xs text-gray-300 leading-relaxed">
-                        Utiliza o <em>Completely Fair Scheduler (CFS)</em>. Define quanto tempo em microssegundos de CPU o container pode utilizar dentro de uma janela de período (ex: 50000 100000 = 0.5 CPU).
+                        <code class="text-yellow-300">cpu.max</code> define quota e período em microssegundos: 50000 100000 = 0,5 CPU. Esgotar a quota causa <strong>throttling</strong>. <code class="text-yellow-300">cpu.weight</code> define peso relativo na disputa por CPU.
                     </p>
                     <div class="bg-rh-black p-2 rounded text-[11px] font-mono text-gray-400 border border-rh-border">
                         podman run --cpus 1.5 ...<br>
-                        ↳ <span class="text-green-400">echo "150000 100000" > cpu.max</span>
+                        ↳ <span class="text-green-400">cpu.max = 150000 100000</span>
                     </div>
                 </div>
 
@@ -296,7 +296,7 @@
                     </p>
                     <div class="bg-rh-black p-2 rounded text-[11px] font-mono text-gray-400 border border-rh-border">
                         podman run --pids-limit 100 ...<br>
-                        ↳ <span class="text-green-400">echo 100 > pids.max</span>
+                        ↳ <span class="text-green-400">pids.max = 100</span>
                     </div>
                 </div>
             </div>
@@ -305,8 +305,12 @@
             <div class="bg-gradient-to-r from-blue-950/40 via-rh-card to-rh-card border border-blue-900/60 p-3 rounded-lg flex items-center justify-between text-xs">
                 <div class="flex items-center space-x-3">
                     <span class="px-2 py-1 bg-blue-600 text-white font-bold rounded text-[10px] uppercase">cgroups v2 no RHEL/Fedora</span>
-                    <span class="text-gray-300">Hierarquia unificada de processos, permitindo delegação sem privilégios para <strong>Rootless Containers</strong> com <code class="text-blue-300 font-mono">systemd --user</code>.</span>
+                    <span class="text-gray-300"><strong>v1:</strong> hierarquias por controlador. <strong>v2:</strong> hierarquia unificada e delegação de recursos; no Podman rootless, normalmente gerenciada pelo <code class="text-blue-300 font-mono">systemd --user</code>.</span>
                 </div>
+            </div>
+            <div class="bg-black border border-rh-border rounded-lg overflow-hidden">
+                <div class="px-3 py-1.5 bg-rh-code text-[10px] font-mono text-gray-400">terminal@rhel-host · limites no Podman · saída ilustrativa</div>
+                <div id="cgroups-limits-terminal" class="p-3 font-mono text-[10.5px] leading-relaxed h-[100px] overflow-y-auto"></div>
             </div>
         </section>
 
@@ -830,6 +834,9 @@
                 stopNamespacesAnimation();
             }
 
+            if (currentSlide === 3) { startCgroupsLimitsAnimation(); }
+            else { cgroupsLimitsAnimator.stop(); }
+
             // Slide 9 (Troubleshooting): inicia/reinicia os dois terminais de diagnóstico
             if (currentSlide === 9) {
                 startSelinuxDiagAnimation();
@@ -841,7 +848,7 @@
         }
 
         // ==================== Motor genérico de terminal animado ====================
-        // Reutilizado pelos 3 terminais deste deck (Namespaces, SELinux Diag, cgroups Diag).
+        // Reutilizado pelos terminais de namespaces, limites e diagnóstico.
         function createTerminalAnimator(elementId) {
             let gen = 0;
             let i = 0;
@@ -972,23 +979,89 @@
         }
         function stopSelinuxDiagAnimation() { selinuxDiagAnimator.stop(); }
 
+        const cgroupsLimitsAnimator = createTerminalAnimator('cgroups-limits-terminal');
+        function startCgroupsLimitsAnimation() {
+            cgroupsLimitsAnimator.run([{"prompt": "$", "text": "podman run -d --name cg-demo --memory 512m --cpus 1.5 --pids-limit 100 docker.io/library/alpine:3.22 sleep 600", "type": true}, {"text": "# Esperado: memory.max=536870912; cpu.max=150000 100000; pids.max=100", "color": "text-blue-300"}, {"text": "# 1,5 CPU de tempo agregado; não fixa núcleos exclusivos.", "color": "text-gray-400"}, {"prompt": "$", "text": "", "type": true, "idleCursor": true}]);
+        }
+
         const cgroupsDiagAnimator = createTerminalAnimator('cgroups-diag-terminal');
         function startCgroupsDiagAnimation() {
             cgroupsDiagAnimator.run([
-                { text: '# Ver uso de recursos em tempo real, estilo top:', color: 'text-gray-500' },
-                { prompt: '$', text: 'podman stats --no-stream', type: true },
-                { text: 'CONTAINER  CPU %   MEM USAGE / LIMIT   NET I/O', color: 'text-blue-300' },
-                { text: 'web        0.42%   38.1MB / 512MB      1.2kB / 848B', color: 'text-gray-300' },
-                { text: '# Ver contadores de throttling de CPU no cgroupfs:', color: 'text-gray-500' },
-                { prompt: '$', text: 'cat /sys/fs/cgroup/.../cpu.stat', type: true },
-                { text: 'nr_periods 8231', color: 'text-gray-300' },
-                { text: 'nr_throttled 12', color: 'text-yellow-300' },
-                { text: 'throttled_usec 41823', color: 'text-yellow-300' },
-                { text: '# Checar se o container sofreu OOM (Out of Memory):', color: 'text-gray-500' },
-                { prompt: '$', text: 'cat /sys/fs/cgroup/.../memory.events', type: true },
-                { text: 'oom_kill 0', color: 'text-green-400' },
-                { prompt: '$', text: '', type: true, idleCursor: true }
-            ]);
+    {
+        "text": "# Host Linux, mesmo usuário do Podman; cg-demo em execução. Saída ilustrativa.",
+        "color": "text-gray-500"
+    },
+    {
+        "prompt": "$",
+        "text": "stat -fc %T /sys/fs/cgroup",
+        "type": true
+    },
+    {
+        "text": "cgroup2fs",
+        "color": "text-blue-300"
+    },
+    {
+        "prompt": "$",
+        "text": "CG_PID=$(podman inspect --format '{{.State.Pid}}' cg-demo)",
+        "type": true
+    },
+    {
+        "prompt": "$",
+        "text": "CG_REL=$(awk -F: '$1 == \"0\" {print $3}' \"/proc/$CG_PID/cgroup\")",
+        "type": true
+    },
+    {
+        "prompt": "$",
+        "text": "CG_DIR=\"/sys/fs/cgroup$CG_REL\"",
+        "type": true
+    },
+    {
+        "prompt": "$",
+        "text": "cat \"$CG_DIR/cpu.max\" \"$CG_DIR/memory.max\"",
+        "type": true
+    },
+    {
+        "text": "150000 100000\n536870912",
+        "color": "text-blue-300"
+    },
+    {
+        "prompt": "$",
+        "text": "cat \"$CG_DIR/cpu.stat\"",
+        "type": true
+    },
+    {
+        "text": "usage_usec 12000\nuser_usec 8000\nsystem_usec 4000\nnr_periods 8\nnr_throttled 0\nthrottled_usec 0",
+        "color": "text-gray-300"
+    },
+    {
+        "prompt": "$",
+        "text": "cat \"$CG_DIR/memory.events\"",
+        "type": true
+    },
+    {
+        "text": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "color": "text-green-400"
+    },
+    {
+        "text": "# Sem carga de teste, throttling e OOM podem permanecer em zero.",
+        "color": "text-gray-500"
+    },
+    {
+        "prompt": "$",
+        "text": "podman rm -f cg-demo",
+        "type": true
+    },
+    {
+        "text": "cg-demo",
+        "color": "text-gray-300"
+    },
+    {
+        "prompt": "$",
+        "text": "",
+        "type": true,
+        "idleCursor": true
+    }
+]);
         }
         function stopCgroupsDiagAnimation() { cgroupsDiagAnimator.stop(); }
 
@@ -1130,7 +1203,10 @@
                 title: 'Slide 3 · cgroups v2 na prática',
                 body: `
                     <p>Se der tempo, mostre ao vivo <code class="text-blue-300">podman stats</code> em um container em execução — ele lê exatamente os arquivos <code class="text-blue-300">/sys/fs/cgroup/.../memory.current</code>, <code class="text-blue-300">cpu.stat</code>, etc. que aparecem neste slide.</p>
-                    <p>Vale mencionar a diferença entre <strong>cgroups v1</strong> (múltiplas hierarquias separadas por controlador, legado) e <strong>v2</strong> (hierarquia unificada, adotada por padrão no RHEL 9 e Fedora recentes). Essa unificação é o que permite a <em>delegação sem privilégios</em> necessária para containers rootless — o kernel só delega uma sub-hierarquia do cgroup para o usuário comum via <code class="text-blue-300">systemd --user</code>.</p>
+                    <p>Vale mencionar a diferença entre <strong>cgroups v1</strong> (múltiplas hierarquias separadas por controlador, legado) e <strong>v2</strong> (hierarquia unificada, adotada por padrão no RHEL 9 e Fedora recentes). O v2 permite delegar uma sub-hierarquia com segurança. O systemd normalmente gerencia essa delegação no Podman rootless; os controladores disponíveis dependem do host. Namespaces de usuário e delegação de cgroups são mecanismos distintos.</p>
+                    <p><strong>Laboratório:</strong> no host Linux com Podman e cgroup v2, crie cg-demo antes do diagnóstico. <code>run -d</code> executa em segundo plano; <code>--name</code> nomeia; <code>--memory 512m</code> limita a 512 MiB; <code>--cpus 1.5</code> limita tempo agregado de CPU; <code>--pids-limit 100</code> limita tarefas (processos/threads). Alpine executa <code>sleep 600</code> por dez minutos. Os valores são ilustrativos, com período de CPU de 100000 µs. Remova o container anterior antes de repetir com o mesmo nome.</p>
+                    <p><strong>OOM:</strong> o limite reduz o impacto do container, mas não elimina OOM no host. <code>memory.oom.group</code> influencia a finalização em grupo; não confunda com <code>cgroup.kill</code>. PIDs são identificadores de processos; I/O é entrada/saída. <code>io.max</code> limita I/O por dispositivo, separadamente de <code>pids.max</code>.</p>
+                    <p><strong>Pergunta:</strong> esgotar quota de CPU mata o processo? Não: provoca throttling, isto é, espera até haver quota novamente. Peso relativo não é teto nem reserva de núcleos.</p>
                     <p>Analogia útil para a turma: cgroups são como o "medidor de energia elétrica" de um apartamento (o container) dentro do prédio (o host) — controla quanto cada unidade pode consumir, mas não decide quem pode entrar em qual cômodo (isso é papel do SELinux, próximo slide).</p>
                     <div class="mt-3 pt-3 border-t border-rh-border/50">
                         <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
@@ -1216,11 +1292,16 @@
                 body: `
                     <p>Os dois terminais deste slide são animados e rodam em loop automaticamente. Slide de referência rápida — vale sugerir que os alunos salvem/anotem estes comandos, pois são os primeiros passos de troubleshooting em qualquer ambiente RHEL corporativo com containers.</p>
                     <p><code class="text-yellow-300">sealert</code> é particularmente valioso para principiantes: ele não apenas mostra o erro do SELinux, mas sugere o comando exato de correção (geralmente algo como <code class="text-yellow-300">semanage fcontext</code> + <code class="text-yellow-300">restorecon</code>), reduzindo a curva de aprendizado.</p>
-                    <p>Sobre <code class="text-blue-300">memory.events</code>: o campo <code class="text-blue-300">oom_kill</code> dentro desse arquivo mostra quantas vezes o OOM Killer atuou naquele cgroup — extremamente útil para diagnosticar containers que reiniciam sozinhos sem mensagem de erro clara na aplicação.</p>
+                    <p><strong>Pré-requisito:</strong> cg-demo do slide 3 ainda em execução. Execute no host do container, com o mesmo usuário e contexto Podman; não use cliente remoto para ler /proc local. Se o PID for zero ou o processo tiver terminado, recrie o laboratório.</p>
+                    <p><code>stat -f</code> consulta o filesystem e <code>-c %T</code> mostra seu tipo: cgroup2fs identifica v2. <code>inspect --format</code> extrai o PID no host. <code>awk -F:</code> separa campos por dois-pontos, seleciona a hierarquia 0 do v2 e retorna seu caminho no terceiro campo. CG_DIR combina esse caminho com o ponto de montagem. <code>cat</code> lê os controles; <code>podman rm -f</code> encerra e remove apenas cg-demo ao concluir.</p>
+                    <p><code>nr_throttled</code> conta períodos com throttling e <code>throttled_usec</code> contabiliza sua duração; compare diferenças entre leituras. Sleep quase não usa CPU: os zeros são esperados. PSI (Pressure Stall Information) mede tempo de espera por recursos, nos arquivos cpu.pressure, memory.pressure e io.pressure quando disponíveis.</p>
+                    <p>Sobre <code class="text-blue-300">memory.events</code>: o campo <code class="text-blue-300">oom_kill</code> dentro desse arquivo conta processos desse cgroup e descendentes mortos por um OOM Killer — extremamente útil para diagnosticar containers que reiniciam sozinhos sem mensagem de erro clara na aplicação.</p>
                     <div class="mt-3 pt-3 border-t border-rh-border/50">
                         <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
                         <ul class="list-disc list-inside space-y-1 text-[11px]">
                             <li><a href="https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/using_selinux/troubleshooting-problems-related-to-selinux_using-selinux" target="_blank" class="text-blue-400 hover:underline">Red Hat Docs: Troubleshooting SELinux</a></li>
+                            <li><a href="https://docs.kernel.org/admin-guide/cgroup-v2.html" target="_blank" class="text-blue-400 hover:underline">Kernel: interfaces de cgroup v2</a></li>
+                            <li><a href="https://docs.podman.io/en/latest/markdown/podman-inspect.1.html" target="_blank" class="text-blue-400 hover:underline">Podman inspect</a></li>
                         </ul>
                     </div>
                 `

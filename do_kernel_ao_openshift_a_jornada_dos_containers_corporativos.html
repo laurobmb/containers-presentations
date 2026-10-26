@@ -82,12 +82,12 @@
 <body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-rh-dark">
 
     <!-- Top Navigation Bar -->
-    <header class="h-16 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
+    <header class="h-16 shrink-0 border-b border-rh-border bg-rh-black px-6 flex items-center justify-between z-20 select-none">
         <div class="flex items-center space-x-3">
             <div class="w-8 h-8 flex items-center justify-center">
                 <img src="assets/rh-hat-icon.png" alt="Red Hat" class="w-full h-full object-contain drop-shadow-md">
             </div>
-            <div>
+            <div class="hidden md:block">
                 <span class="text-xs uppercase tracking-widest text-rh-red font-bold block">Módulo 3 de 4 • Arquitetura de Plataforma</span>
                 <h1 class="text-sm font-heading font-bold text-white tracking-wide">Podman ➔ Kubernetes ➔ OpenShift Container Platform 4.22</h1>
             </div>
@@ -98,7 +98,7 @@
             <span class="text-gray-400">SLIDE</span>
             <span id="slide-number" class="text-rh-red font-bold text-sm">01</span>
             <span class="text-gray-500">/</span>
-            <span id="total-slides" class="text-gray-400">11</span>
+            <span id="total-slides" class="text-gray-400">14</span>
         </div>
 
         <!-- Header Actions -->
@@ -341,7 +341,48 @@
             </div>
         </section>
 
-        <!-- ==================== SLIDE 5: Por que OpenShift? ==================== -->
+        <!-- ==================== SLIDE 5: Requests e Limits no Kernel ==================== -->
+        <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
+            <div>
+                <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Do YAML ao cgroup v2</div>
+                <h2 class="text-3xl font-black text-white">Requests e limits: onde o Kernel entra?</h2>
+                <p class="text-gray-400 text-sm mt-1">O scheduler considera requests para escolher o nó. Kubelet e runtime traduzem recursos em controles do Linux.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-rh-code border border-rh-border rounded-lg p-4 space-y-3">
+                    <h3 class="text-blue-400 font-bold text-sm">Trecho de spec.containers[] · um container</h3>
+                    <pre class="text-sm font-mono text-gray-200 leading-relaxed"><code>resources:
+  requests:
+    cpu: "250m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"</code></pre>
+                    <p class="text-xs text-gray-400">250m = 0,25 CPU · 512Mi = 536870912 bytes.<br>Requests orientam o agendamento; limits delimitam o consumo.</p>
+                </div>
+                <div class="space-y-3 text-xs">
+                    <div class="bg-rh-card border-l-4 border-yellow-500 rounded p-3">
+                        <h3 class="text-yellow-400 font-bold">CPU: peso e quota são diferentes</h3>
+                        <p class="text-gray-300 mt-1">request → peso relativo em <code>cpu.weight</code>, usado na disputa por CPU.<br>limit → <code>cpu.max = 50000 100000</code>, neste exemplo com período de 100 ms.</p>
+                        <p class="text-gray-400 mt-1">Ao esgotar a quota: throttling. Não significa núcleo exclusivo.</p>
+                    </div>
+                    <div class="bg-rh-card border-l-4 border-blue-500 rounded p-3">
+                        <h3 class="text-blue-400 font-bold">Memória: agendamento e limite</h3>
+                        <p class="text-gray-300 mt-1">request → considerado pelo scheduler; não reserva automaticamente RAM física.<br>limit → <code>memory.max = 536870912</code>.</p>
+                        <p class="text-gray-400 mt-1">Se a recuperação de memória não bastar, pode ocorrer OOM no cgroup.</p>
+                    </div>
+                    <div class="bg-rh-card border border-rh-border rounded p-3 text-gray-300">
+                        <strong class="text-white">Diagnóstico:</strong> throttling de CPU, OOM do container e eviction por pressão no nó são situações distintas.
+                    </div>
+                </div>
+            </div>
+            <div class="bg-blue-950/30 border border-blue-800/60 rounded-lg p-3 text-xs text-blue-200">
+                <strong>Transição no Kubernetes upstream:</strong> v2 estável em 1.25 → v1 em manutenção em 1.31 → desde 1.35, kubelet recusa v1 por padrão (<code>failCgroupV1: true</code>).
+                <span class="block text-gray-400 mt-1">Referência: artigo de 06/10/2026. No OpenShift, consulte também a documentação da versão instalada.</span>
+            </div>
+        </section>
+
+        <!-- ==================== SLIDE 6: Por que OpenShift? ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Passo 4 • O Salto Corporativo</div>
@@ -393,7 +434,7 @@
             </div>
         </section>
 
-        <!-- ==================== SLIDE 6: RHCOS e MCO ==================== -->
+        <!-- ==================== SLIDE 7: RHCOS e MCO ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">A Base Imutável • OCP 4.22</div>
@@ -444,7 +485,7 @@
             </div>
         </section>
 
-        <!-- ==================== SLIDE 7: Operators e OLM v1 ==================== -->
+        <!-- ==================== SLIDE 8: Operators e OLM v1 ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">O Padrão Arquitetural • OCP 4.22</div>
@@ -497,7 +538,7 @@
             </div>
         </section>
 
-        <!-- ==================== SLIDE 8: Segurança Enterprise e Multitenancy ==================== -->
+        <!-- ==================== SLIDE 9: Segurança Enterprise e Multitenancy ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">Governança &amp; Segurança • OCP 4.22</div>
@@ -534,7 +575,7 @@
             </div>
         </section>
 
-        <!-- ==================== SLIDE 9: A Plataforma Completa ==================== -->
+        <!-- ==================== SLIDE 10: A Plataforma Completa ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-blue-400 font-bold uppercase tracking-wider">Ecossistema Integrado • OCP 4.22</div>
@@ -584,7 +625,7 @@
             </div>
         </section>
 
-        <!-- ==================== SLIDE 10: O Mapeamento Completo ==================== -->
+        <!-- ==================== SLIDE 11: O Mapeamento Completo ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-start overflow-y-auto custom-scroll space-y-4">
             <div>
                 <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">A Jornada Ponta a Ponta</div>
@@ -651,7 +692,7 @@
             </div>
         </section>
 
-        <!-- ==================== SLIDE 11: Finalização e Perguntas ==================== -->
+        <!-- ==================== SLIDE 12: Finalização e Perguntas ==================== -->
         <section class="slide w-full max-w-6xl h-full flex-col justify-center items-start text-left space-y-5">
             <div class="text-xs font-mono text-rh-red font-bold uppercase tracking-wider">Mão na Massa</div>
             <h2 class="text-3xl md:text-5xl font-black text-white">Próximo Passo: Do Laboratório à Produção</h2>
@@ -683,7 +724,7 @@
             </div>
         </section>
 
-        <!-- ==================== SLIDE FINAL: Encerramento Oficial Red Hat ==================== -->
+        <!-- ==================== SLIDE 13: Encerramento Oficial Red Hat ==================== -->
         <section class="slide w-full h-full flex-col">
             <div class="relative w-full h-full overflow-hidden rounded-lg shadow-2xl" style="background:#BD0000;">
                 <div class="absolute inset-0 flex items-center pl-10 md:pl-20 pr-10 md:pr-16 space-x-6 md:space-x-10" style="padding-bottom:15%;">
@@ -1090,9 +1131,30 @@
                     </div>
                 `
             },
-            // 5 - Por que OpenShift?
+            // 5 - Requests e Limits no Kernel
             {
-                title: 'Slide 5 · Kubernetes puro vs. OpenShift',
+                title: 'Slide 5 · Do YAML aos limites efetivos',
+                body: `
+                    <p><strong>Objetivo:</strong> conectar o módulo 2 ao agendamento e à execução de Pods. YAML significa YAML Ain’t Markup Language; CPU é a unidade de processamento; Mi representa mebibytes. O exemplo é um trecho de um container, não um manifesto completo. Um Pod simples com esse único container pertence à classe QoS Burstable (Quality of Service, classe de serviço).</p>
+                    <p><strong>CPU:</strong> 500m equivale a meio CPU de tempo agregado. Com período de 100000 µs, a quota é 50000 µs. Isso não implica afinidade nem exclusividade. O request influencia o peso por meio da conversão de shares para weight no runtime OCI (Open Container Initiative); não ensine um valor numérico fixo de cpu.weight, pois a conversão depende do runtime e da versão.</p>
+                    <p><strong>Memória:</strong> o scheduler contabiliza o request para selecionar o nó; o limite é aplicado pelo kernel. MemoryQoS é adicional e depende da versão e configuração. Não prometa que todo request escreve automaticamente memory.min ou memory.low. Esses arquivos protegem memória contra recuperação; memory.high provoca contenção e memory.max estabelece o limite rígido.</p>
+                    <p><strong>Três sintomas:</strong> CPU throttling atrasa execução; OOM (Out of Memory) pode matar processos do container; eviction é a remoção do Pod pelo kubelet devido a pressão no nó. Migrar para v2 não resolve sozinho a contabilização de active_file na avaliação de pressão de memória.</p>
+                    <p><strong>Hierarquia:</strong> limites dos ancestrais também restringem os descendentes. Compare controles do container e do Pod. Kubelet e runtime devem concordar no driver de cgroups; em hosts systemd, prefira o driver systemd. Driver (systemd/cgroupfs) e versão (v1/v2) são conceitos diferentes.</p>
+                    <p><strong>Atualização datada em 07/10/2026:</strong> o artigo registra v2 estável em 1.25, manutenção do v1 em 1.31 e failCgroupV1=true por padrão desde 1.35. O override false é transitório. Valide sistema operacional, runtime, agentes de métricas e aplicações que leem cgroupfs. Confira o suporte da versão instalada do OpenShift antes de aplicar cronogramas upstream. O artigo mistura referências temporais sobre MemoryQoS; por isso o slide não afirma um status atual genérico.</p>
+                    <p><strong>Dinâmica:</strong> pergunte se CPU em 500m causa OOM. Peça à turma que indique o arquivo para investigar cada sintoma. PSI (Pressure Stall Information) mede tempo de espera por recursos, complementando métricas de utilização quando disponível.</p>
+                    <div class="mt-3 pt-3 border-t border-rh-border/50">
+                        <strong class="text-rh-red text-[11px] uppercase tracking-wider block mb-1">Referências</strong>
+                        <ul class="list-disc list-inside space-y-1 text-[11px]">
+                            <li><a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/" target="_blank" class="text-blue-400 hover:underline">Kubernetes: recursos de Pods e containers</a></li>
+                            <li><a href="https://docs.kernel.org/admin-guide/cgroup-v2.html" target="_blank" class="text-blue-400 hover:underline">Kernel: cgroup v2</a></li>
+                            <li><a href="https://kubernetes.io/blog/2026/10/06/kubernetes-cgroups-v2-shift/" target="_blank" class="text-blue-400 hover:underline">Kubernetes: transição para cgroup v2 (06/10/2026)</a></li>
+                        </ul>
+                    </div>
+                `
+            },
+            // 6 - Por que OpenShift?
+            {
+                title: 'Slide 6 · Kubernetes puro vs. OpenShift',
                 body: `
                     <p>Enquadre esta tabela evitando o tom de "marketing" — o objetivo é mostrar que o Kubernetes puro entrega os primitivos (API, scheduler, etcd), mas deixa em aberto dezenas de decisões operacionais (qual SO usar, como fazer upgrade sem downtime, como expor serviços) que uma empresa precisaria resolver artesanalmente. O OpenShift entrega essas respostas prontas e testadas/suportadas.</p>
                     <p>A citação central do slide ("a API do OpenShift é 100% Kubernetes") é tecnicamente verdadeira e importante: qualquer manifesto YAML padrão de Kubernetes funciona sem alteração em um cluster OpenShift — não há um "dialeto" proprietário.</p>
@@ -1104,9 +1166,9 @@
                     </div>
                 `
             },
-            // 6 - RHCOS e MCO
+            // 7 - RHCOS e MCO
             {
-                title: 'Slide 6 · O sistema operacional como componente do cluster',
+                title: 'Slide 7 · O sistema operacional como componente do cluster',
                 body: `
                     <p>Este conceito costuma ser uma revelação para alunos vindos de administração de sistemas tradicional: no OpenShift, você normalmente <strong>não faz SSH</strong> nos nós para configurá-los manualmente. Qualquer mudança de configuração de SO passa por um objeto declarativo (<code class="text-yellow-400">MachineConfig</code>) gerenciado pelo cluster.</p>
                     <p>Explique o fluxo do MCO de forma sequencial e concreta: (1) o admin cria/edita um <code class="text-yellow-400">MachineConfig</code>, (2) o MCO gera um novo "render" combinando todas as configs daquele pool de máquinas, (3) o Machine Config Daemon em cada nó detecta a mudança, drena o nó com segurança (movendo os pods para outros nós antes), aplica a atualização via <code class="text-white">rpm-ostree</code> de forma atômica, e reinicia o nó.</p>
@@ -1120,9 +1182,9 @@
                     </div>
                 `
             },
-            // 7 - Operators e OLM v1
+            // 8 - Operators e OLM v1
             {
-                title: 'Slide 7 · Operators: automação como software',
+                title: 'Slide 8 · Operators: automação como software',
                 body: `
                     <p>Boa definição para citar em aula (paráfrase de CoreOS/Red Hat): "um Operator é a forma de capturar o conhecimento de um administrador humano especialista em software" — ao invés de um runbook em uma wiki, o conhecimento vira código executado continuamente pelo Kubernetes.</p>
                     <p>A distinção Day 1 / Day 2 é um ótimo gancho para exemplos do mundo real: peça para a turma imaginar como seria fazer upgrade de um cluster de banco de dados PostgreSQL distribuído manualmente (backup, failover, teste, rollback) vs. deixar um Operator do Postgres cuidar disso automaticamente.</p>
@@ -1136,9 +1198,9 @@
                     </div>
                 `
             },
-            // 8 - Segurança Enterprise e Multitenancy
+            // 9 - Segurança Enterprise e Multitenancy
             {
-                title: 'Slide 8 · Multi-tenancy: fechando o ciclo com SELinux',
+                title: 'Slide 9 · Multi-tenancy: fechando o ciclo com SELinux',
                 body: `
                     <p>Este slide é o segundo grande "fecho de ciclo" do módulo, conectando diretamente com o Módulo 2: o card "SELinux MCS Automático" é literalmente a mesma tecnologia de categorias MCS vista antes — a única diferença é que no OpenShift o cluster atribui e gerencia essas categorias automaticamente por <strong>Project</strong>, sem intervenção manual do administrador.</p>
                     <p>Sobre SCCs (Security Context Constraints): é o mecanismo do OpenShift que decide quais capabilities, UIDs e volumes um pod pode usar — é análogo a uma "política central" que se aplica a todos os pods de um Project, complementando (não substituindo) o Pod Security do Kubernetes puro.</p>
@@ -1150,9 +1212,9 @@
                     </div>
                 `
             },
-            // 9 - A Plataforma Completa
+            // 10 - A Plataforma Completa
             {
-                title: 'Slide 9 · O ecossistema integrado do OpenShift',
+                title: 'Slide 10 · O ecossistema integrado do OpenShift',
                 body: `
                     <p>Não é preciso entrar a fundo em cada ferramenta — o objetivo pedagógico aqui é mostrar <strong>amplitude</strong>: o que em Kubernetes puro exigiria integrar 4-5 ferramentas de terceiros separadamente (um CI/CD, uma ferramenta de GitOps, uma solução de VMs, um ingress controller) vem pré-integrado e suportado como parte da assinatura do OpenShift.</p>
                     <p>Vale mencionar rapidamente as tecnologias upstream por trás de cada card, já que são projetos open source conhecidos por si só: <strong>Argo CD</strong> (GitOps), <strong>Tekton</strong> (Pipelines), <strong>KubeVirt</strong> (Virtualization) — o OpenShift empacota, testa e dá suporte comercial a esses projetos CNCF/open source.</p>
@@ -1166,17 +1228,17 @@
                     </div>
                 `
             },
-            // 10 - O Mapeamento Completo
+            // 11 - O Mapeamento Completo
             {
-                title: 'Slide 10 · A matriz evolutiva ponta a ponta',
+                title: 'Slide 11 · A matriz evolutiva ponta a ponta',
                 body: `
                     <p>Esta tabela é o melhor material de revisão de <strong>todo o curso</strong> (não só do Módulo 3) — cada linha percorre um conceito desde o Kernel puro até o OpenShift. Considere reservar um tempo extra aqui para revisão geral antes de qualquer avaliação.</p>
                     <p>Sugestão de dinâmica: peça para a turma, em duplas, tentar preencher de memória a coluna "3. Red Hat OpenShift 4.22" olhando apenas para a coluna "1. Kernel & Podman" — é um exercício eficaz para verificar se a jornada completa (Módulos 1→2→3) foi de fato internalizada.</p>
                 `
             },
-            // 11 - Finalização e Perguntas (Laboratórios)
+            // 12 - Finalização e Perguntas (Laboratórios)
             {
-                title: 'Slide 11 · Preparando os laboratórios práticos',
+                title: 'Slide 12 · Preparando os laboratórios práticos',
                 body: `
                     <p>Este slide marca a transição da teoria para a prática hands-on. Se os laboratórios forem em outra sessão, use este momento para alinhar pré-requisitos: acesso a um cluster OpenShift (ex: Developer Sandbox, veja referência abaixo) e o Podman já instalado localmente desde o Módulo 1.</p>
                     <p>Sugestão de ordem de execução dos laboratórios: primeiro reproduzir o Laboratório 1 (gerar o YAML localmente com Podman) e só então aplicá-lo no Laboratório 2 via <code class="text-white">oc apply</code> — isso reforça visualmente, na prática, exatamente a "ponte" discutida ao longo de todo o curso.</p>
@@ -1188,9 +1250,9 @@
                     </div>
                 `
             },
-            // 12 - Encerramento
+            // 13 - Encerramento
             {
-                title: 'Slide 12 · Encerramento do curso',
+                title: 'Slide 13 · Encerramento do curso',
                 body: `
                     <p>Momento de encerrar a trilha completa das 3 aulas. Sugestão de fechamento: peça para cada aluno resumir em uma frase "o que é um container" usando o vocabulário aprendido (processo + namespaces + cgroups + SELinux) — é uma forma rápida e reveladora de avaliar a fixação do conteúdo de toda a disciplina.</p>
                     <p>O <strong>Red Hat Developer Sandbox</strong> citado no slide é gratuito e não exige cartão de crédito — é a forma mais simples de os alunos continuarem praticando <code class="text-white">oc</code> em um cluster OpenShift real após a aula, sem custo de infraestrutura.</p>
